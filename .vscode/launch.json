@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "test",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/test/bin/Debug/net6.0/test.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/test",
+            "stopAtEntry": false
+        }
+    ]
+}
