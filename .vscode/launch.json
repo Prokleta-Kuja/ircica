@@ -2,10 +2,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "ircica",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-ircica",
+            "program": "${workspaceFolder}/src/ircica/bin/Debug/net6.0/ircica.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/ircica",
+            "stopAtEntry": false
+        },
+        {
             "name": "test",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
+            "preLaunchTask": "build-test",
             "program": "${workspaceFolder}/src/test/bin/Debug/net6.0/test.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/test",

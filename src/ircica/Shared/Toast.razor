@@ -1,0 +1,58 @@
+@using Services
+<div id=@Settings.Id class=@classes>
+    <div class="toast-body">
+        <div class="d-flex">
+            <div class="me-auto">
+                @Settings.Message
+            </div>
+            <button type="button" class="btn-close" @onclick=Close></button>
+        </div>
+        @if (hasAction)
+        {
+            <div class="text-center mt-2 pt-2 border-top">
+                <button type="button" class="btn btn-primary btn-sm" @onclick=ActionClick>@Settings.Action</button>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public ToastSettings Settings { get; set; } = null!;
+    [Parameter] public EventCallback<(Guid toastId, bool isActionClick)> OnClose { get; set; }
+    bool hasAction => !string.IsNullOrWhiteSpace(Settings.Action) && Settings.OnClick != null;
+    string classes = "toast align-items-center fade show ";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        StateHasChanged();
+        switch (Settings.Level)
+        {
+            case ToastLevel.Error: classes += "bg-danger"; break;
+            case ToastLevel.Info: classes += "bg-info"; break;
+            case ToastLevel.Success: classes += "bg-success"; break;
+            case ToastLevel.Warning: classes += "bg-warning"; break;
+        }
+        StateHasChanged();
+
+        if (hasAction)
+            return;
+
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(7));
+        await timer.WaitForNextTickAsync();
+
+        await Close();
+    }
+    async Task Close()
+    {
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync((Settings.Id, false));
+    }
+    async Task ActionClick()
+    {
+        if (OnClose.HasDelegate)
+            await OnClose.InvokeAsync((Settings.Id, true));
+    }
+}

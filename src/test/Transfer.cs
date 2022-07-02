@@ -105,14 +105,14 @@ public class Transfer
     {
         var ip = IPAddress.Parse(ipStr);
         var port = int.Parse(portStr);
-        var size = long.Parse(sizeStr);
+        var size = decimal.Parse(sizeStr);
         var file = new FileInfo(filename);
 
         using var fileStream = file.OpenWrite();
         using var client = new TcpClient(ip.ToString(), port);
         using var clientStream = client.GetStream();
 
-        long totalRead = 0;
+        decimal totalRead = 0;
         var buffer = new byte[1024 * 128];
         var sw = new Stopwatch();
         sw.Start();
@@ -121,7 +121,7 @@ public class Transfer
         {
             totalRead += read;
             await fileStream.WriteAsync(buffer.AsMemory(0, read));
-            Console.WriteLine($"{totalRead}/{size}");
+            Console.WriteLine($"{Math.Round(totalRead / size * 100m, 2)} %");
             if (totalRead == size)
                 client.Close();
         }

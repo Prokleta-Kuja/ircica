@@ -1,0 +1,47 @@
+@using Services
+@implements IDisposable
+
+<div class="toast-container position-fixed bottom-0 start-0 p-3">
+    @foreach (var toast in ToastList.OrderBy(x => x.TimeStamp))
+    {
+        <Toast @key=toast.Id Settings=toast OnClose=RemoveToast />
+    }
+</div>
+
+@code {
+    const int MaxToastCount = 3;
+    [Inject] private ToastService ToastService { get; set; } = null!;
+    internal List<ToastSettings> ToastList { get; set; } = new();
+    internal Queue<ToastSettings> ToastWaitingQueue { get; set; } = new();
+
+    public void Dispose() => ToastService.OnShow -= ShowToast;
+    protected override void OnInitialized()
+    {
+        ToastService.OnShow += ShowToast;
+    }
+    void RemoveToast((Guid ToastId, bool IsActionClick) arg)
+    {
+        var toast = ToastList.SingleOrDefault(x => x.Id == arg.ToastId);
+        if (toast != null)
+        {
+            if (arg.IsActionClick)
+                toast.OnClick?.Invoke();
+            ToastList.Remove(toast);
+        }
+
+        if (ToastWaitingQueue.Any())
+            ToastList.Add(ToastWaitingQueue.Dequeue());
+
+        StateHasChanged();
+    }
+    void ShowToast(ToastSettings toast)
+    {
+        if (ToastList.Count >= MaxToastCount)
+            ToastWaitingQueue.Enqueue(toast);
+        else
+        {
+            ToastList.Add(toast);
+            StateHasChanged();
+        }
+    }
+}
