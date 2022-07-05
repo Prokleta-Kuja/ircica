@@ -66,7 +66,7 @@ public class IrcMotdEndMessage : IrcMessage
     {
         foreach (var channel in channels)
         {
-            await writer.WriteLineAsync($"JOIN {channel}");
+            await writer.WriteLineAsync($"JOIN #{channel.TrimStart('#')}");
             await writer.FlushAsync();
         }
     }

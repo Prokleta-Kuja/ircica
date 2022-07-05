@@ -23,12 +23,3 @@ public class IrcOptions
     public string NickName { get; set; }
     public IrcServer Server { get; set; }
 }
-[Flags]
-public enum IrcState
-{
-    Unknown = 0,
-    Connected = 1,
-    Indexing = 2,
-    Error = 4,
-    Disposed = 8,
-}

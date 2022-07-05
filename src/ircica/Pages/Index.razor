@@ -2,6 +2,31 @@
 
 <PageTitle>Index</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Total allocated @(GC.GetTotalAllocatedBytes() /1024m/1024m)</h1>
+<h1>Total usage @(GC.GetTotalMemory(false) /1024m/1024m)</h1>
 
-Welcome to your new app.
+<table class="table">
+    <thead>
+        <tr>
+            <th>Channel</th>
+            <th>Running</th>
+            <th>Announcements</th>
+            <th>Messages</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var indexer in IrcService.Indexers)
+        {
+            <tr>
+                <td>@indexer.Opt.Server.Name</td>
+                <td>@indexer.Running</td>
+                <td>@indexer.Announcements.Count.ToString("#,##0")</td>
+                <td>@indexer.Messages.Count.ToString("#,##0")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<button @onclick=StateHasChanged>Refresh</button>
+<button @onclick=IrcService.StopAll>Stop</button>
+<button @onclick=IrcService.StartAll>Start</button>

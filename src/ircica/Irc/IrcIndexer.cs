@@ -1,59 +1,72 @@
+using System.Diagnostics;
 using System.Net.Sockets;
 
 namespace ircica;
 
 public class IrcIndexer
 {
-    readonly IrcOptions _opt;
     public IrcIndexer(IrcOptions opt)
     {
-        _opt = opt;
+        Opt = opt;
     }
+    public IrcOptions Opt { get; }
+    public bool Running { get; private set; }
     public List<IrcDirectMessage> Messages { get; } = new();
+    public List<IrcAnnouncementMessage> Announcements { get; } = new();
 
-    public IrcState State { get; private set; }
     public async Task Start(CancellationToken ct)
     {
         using var client = new TcpClient();
-        await client.ConnectAsync(_opt.Server.Url, _opt.Server.Port);
-        using var stream = client.GetStream();
-        using var reader = new StreamReader(stream);
-        using var writer = new StreamWriter(stream);
-
-        writer.WriteLine($"USER {_opt.UserName} 0 * {_opt.RealName}");
-        writer.WriteLine($"NICK {_opt.NickName}");
-        writer.Flush();
-        State |= IrcState.Connected;
-
-        while (client.Connected)
+        try
         {
-            if (ShouldQuit(writer, ct))
-                return;
+            await client.ConnectAsync(Opt.Server.Url, Opt.Server.Port);
+            using var stream = client.GetStream();
+            using var reader = new StreamReader(stream);
+            using var writer = new StreamWriter(stream);
+            Running = true;
 
-            var line = await reader.ReadLineAsync().WaitAsync(ct).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(line))
-                continue;
+            writer.WriteLine($"USER {Opt.UserName} 0 * {Opt.RealName}");
+            writer.WriteLine($"NICK {Opt.NickName}");
+            writer.Flush();
 
-            var message = IrcMessage.Parse(line, _opt.NickName);
-            switch (message)
+            while (client.Connected)
             {
-                case IrcPingMessage ping:
-                    await ping.WriteResponseAsync(writer);
-                    break;
-                case IrcMotdEndMessage motd:
-                    await motd.JoinChannels(_opt.Server.Channels, writer);
-                    break;
-                case IrcVersionMessage version:
-                    await version.WriteResponseAsync(writer);
-                    break;
-                case IrcDirectMessage direct:
-                    Messages.Add(direct);
-                    break;
-                default:
-                    break;
+                if (ShouldQuit(writer, ct))
+                    return;
+
+                var line = await reader.ReadLineAsync().WaitAsync(ct).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                var message = IrcMessage.Parse(line, Opt.NickName);
+                switch (message)
+                {
+                    case IrcPingMessage ping:
+                        await ping.WriteResponseAsync(writer);
+                        break;
+                    case IrcMotdEndMessage motd:
+                        await motd.JoinChannels(Opt.Server.Channels, writer);
+                        break;
+                    case IrcVersionMessage version:
+                        await version.WriteResponseAsync(writer);
+                        break;
+                    case IrcDirectMessage direct:
+                        Messages.Add(direct);
+                        break;
+                    case IrcAnnouncementMessage announce:
+                        Announcements.Add(announce);
+                        break;
+                    default:
+                        break;
+                }
             }
+            client.Close();
         }
-        client.Close();
+        catch (TaskCanceledException) { }
+        finally
+        {
+            Running = false;
+        }
     }
     static bool ShouldQuit(StreamWriter writer, CancellationToken cancellationToken)
     {

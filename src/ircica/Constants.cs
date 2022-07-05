@@ -1,10 +1,13 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ircica;
 
 public static class C
 {
+    public static JsonSerializerOptions JsonOpt { get; } = new() { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
+    public static Settings Settings { get; set; } = new();
     public static readonly TimeZoneInfo DefaultTZ = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zagreb");
     public static readonly CultureInfo DefaultLocale = CultureInfo.GetCultureInfo("en-US");
     public static string GetHumanFileSize(FileInfo file)
@@ -47,43 +50,14 @@ public static class C
         public static string DataFor(string file) => Path.Combine(Data, file);
         public static readonly string AppDbConnectionString = $"Data Source={ConfigFor("app.db")}";
     }
-    public static class Config
-    {
-        static readonly FileInfo file = new(Paths.ConfigFor("configuration.json"));
-        static readonly JsonSerializerOptions serializerOptions = new()
-        {
-            WriteIndented = true,
-            IgnoreReadOnlyProperties = true,
-        };
-        public static Settings Current { get; private set; } = new();
-        public static async ValueTask LoadAsync()
-        {
-            if (file.Exists)
-                Current = await LoadFromDiskAsync();
-            else
-                await SaveToDiskAsync(Current);
-        }
-        public static async Task<Settings> LoadFromDiskAsync()
-        {
-            var contents = await File.ReadAllTextAsync(file.FullName);
-            var settings = JsonSerializer.Deserialize<Settings>(contents) ?? throw new JsonException("Could not load configuration file");
-            return settings;
-        }
-        public static async ValueTask SaveToDiskAsync(Settings settings)
-        {
-            var contents = JsonSerializer.Serialize(settings, serializerOptions);
-            await File.WriteAllTextAsync(file.FullName, contents);
-        }
-        public static ValueTask SaveToDiskAsync() => SaveToDiskAsync(Current);
-    }
 }
 
 public class Settings
 {
-    public string UserName { get; set; } = null!;
-    public string RealName { get; set; } = null!;
-    public string NickName { get; set; } = null!;
-    public List<IrcServer> Servers { get; set; } = new();
+    public string UserName { get; set; } = "ircica";
+    public string RealName { get; set; } = "ircica";
+    public string NickName { get; set; } = "ircica";
+    public List<IrcServer> Servers { get; set; } = new() { new() { Name = "Something", Url = "irc.something.net", Channels = new() { "A", "B" }, Port = 6667 } };
     public bool Validate(out string? message)
     {
         if (string.IsNullOrWhiteSpace(UserName))

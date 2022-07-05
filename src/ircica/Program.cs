@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ircica.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 
@@ -38,13 +39,32 @@ public class Program
         app.MapBlazorHub();
         app.MapFallbackToPage("/_Host");
 
+        IrcService.LoadIndexers();
+        IrcService.StartAll();
+
         app.Run();
+
+        IrcService.StopAll();
     }
     static void InitializeDirectories()
     {
-        var config = new DirectoryInfo(C.Paths.Config);
-        config.Create();
-        var data = new DirectoryInfo(C.Paths.Data);
-        data.Create();
+        Directory.CreateDirectory(C.Paths.Config);
+        //Directory.CreateDirectory(C.Paths.Data);
+
+        var settingsJson = C.Paths.ConfigFor("settings.json");
+        var settingsJsonExample = C.Paths.ConfigFor("settings.example.json");
+        if (!File.Exists(settingsJson))
+        {
+            File.WriteAllText(settingsJsonExample, JsonSerializer.Serialize(C.Settings, C.JsonOpt));
+            throw new FileNotFoundException("Must configure settings.json, see settings.example.json");
+        }
+
+        var settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(settingsJson), C.JsonOpt);
+        if (settings == null)
+            throw new JsonException("Could not parse settings.json");
+        else if (!settings.Validate(out var message))
+            throw new Exception($"settings.json: {message}");
+
+        C.Settings = settings;
     }
 }
