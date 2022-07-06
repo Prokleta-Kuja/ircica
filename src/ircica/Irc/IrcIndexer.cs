@@ -12,7 +12,7 @@ public class IrcIndexer
     public IrcOptions Opt { get; }
     public bool Running { get; private set; }
     public List<IrcDirectMessage> Messages { get; } = new();
-    public List<IrcAnnouncementMessage> Announcements { get; } = new();
+    public Dictionary<string, DateTime> Lines { get; } = new();
 
     public async Task Start(CancellationToken ct)
     {
@@ -54,7 +54,10 @@ public class IrcIndexer
                         Messages.Add(direct);
                         break;
                     case IrcAnnouncementMessage announce:
-                        Announcements.Add(announce);
+                        if (Lines.ContainsKey(line))
+                            Lines[line] = DateTime.UtcNow;
+                        else
+                            Lines.Add(line, DateTime.UtcNow);
                         break;
                     default:
                         break;

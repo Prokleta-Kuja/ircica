@@ -28,7 +28,7 @@ public class IrcMessage
                     return new IrcDirectMessage(data);
             }
             if (data[3].StartsWith(":\u0001#"))
-                return new IrcAnnouncementMessage(line, data);
+                return new IrcAnnouncementMessage();
 
         }
         return new IrcUnknownMessage(data);
@@ -100,14 +100,4 @@ public class IrcDirectMessage : IrcMessage
     }
 }
 
-public class IrcAnnouncementMessage : IrcMessage
-{
-    public byte[] Hash { get; }
-    public string Sender { get; }
-    public string Channel { get; set; }
-    public IrcAnnouncementMessage(string line, string[] data)
-    {
-        var lineBytes = Encoding.UTF8.GetBytes(line);
-        Hash = s_hasher.ComputeHash(lineBytes);
-    }
-}
+public class IrcAnnouncementMessage : IrcMessage { }

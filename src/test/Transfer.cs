@@ -37,7 +37,7 @@ public class Transfer
                 continue;
 
             // See whats going on in the channel
-            Console.WriteLine($"Received: {line}");
+            // Console.WriteLine($"Received: {line}");
 
             var d = line.Split(' ');
 
@@ -54,6 +54,7 @@ public class Transfer
                         {
                             // Must be on a known channel to request a pack
                             writer.WriteLine($"JOIN {channel}");
+                            writer.WriteLine($"JOIN #mg-chat"); // needed for moviegods
                             // Ask the bot to send us specific pack and wait in queue
                             writer.WriteLine($"PRIVMSG {bot} :xdcc send {pack}");
                             break;
@@ -83,10 +84,10 @@ public class Transfer
                                 Console.WriteLine($"Downloading {filename} from {ip}:{port}");
                                 download = Download(filename, ip, port, size);
 
-                                // Download is happening in the background so we can disconnect from irc
-                                writer.WriteLine("QUIT");
-                                writer.Flush();
-                                client.Close();
+                                // Download is happening in the background so we can disconnect from irc, or not
+                                // writer.WriteLine("QUIT");
+                                // writer.Flush();
+                                // client.Close();
                             }
                             else
                                 Console.WriteLine($"Unhandled: {line}");
@@ -116,12 +117,17 @@ public class Transfer
         var buffer = new byte[1024 * 128];
         var sw = new Stopwatch();
         sw.Start();
-
+        var progress = 0m;
         while (client.Connected && await clientStream.ReadAsync(buffer) is var read && read > 0)
         {
             totalRead += read;
             await fileStream.WriteAsync(buffer.AsMemory(0, read));
-            Console.WriteLine($"{Math.Round(totalRead / size * 100m, 2)} %");
+            var newProgress = Math.Round(totalRead / size * 100m, 0);
+            if (newProgress != progress)
+            {
+                progress = newProgress;
+                Console.WriteLine($"{progress} %");
+            }
             if (totalRead == size)
                 client.Close();
         }

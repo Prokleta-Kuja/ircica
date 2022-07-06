@@ -20,7 +20,7 @@
             <tr>
                 <td>@indexer.Opt.Server.Name</td>
                 <td>@indexer.Running</td>
-                <td>@indexer.Announcements.Count.ToString("#,##0")</td>
+                <td>@indexer.Lines.Count.ToString("#,##0")</td>
                 <td>@indexer.Messages.Count.ToString("#,##0")</td>
             </tr>
         }
@@ -30,3 +30,4 @@
 <button @onclick=StateHasChanged>Refresh</button>
 <button @onclick=IrcService.StopAll>Stop</button>
 <button @onclick=IrcService.StartAll>Start</button>
+<button @onclick=IrcService.SaveAllAsync>Save</button>

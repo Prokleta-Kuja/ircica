@@ -48,7 +48,13 @@ public static class C
         public static string ConfigFor(string file) => Path.Combine(Config, file);
         public static string Data => Path.Combine(Environment.CurrentDirectory, "data");
         public static string DataFor(string file) => Path.Combine(Data, file);
-        public static readonly string AppDbConnectionString = $"Data Source={ConfigFor("app.db")}";
+
+        public static string ActiveDbFile => ConfigFor("app.db");
+        public static string InactiveDbFile => ConfigFor("prev.db");
+        public static string TempDbFile => ConfigFor("temp.db");
+        public const string InMemoryDbConnectionString = "Data Source=:memory:";
+        public static string ActiveDbConnectionString => $"Data Source={ActiveDbFile}";
+        public static string TempDbConnectionString => $"Data Source={TempDbFile}";
     }
 }
 
