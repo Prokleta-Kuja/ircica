@@ -61,8 +61,9 @@ public static class IrcService
             await Task.Delay(TimeSpan.FromSeconds(2));
         }
 
-        File.Delete(C.Paths.TempDbFile);
         File.Delete(C.Paths.InactiveDbFile);
+        foreach (var tmp in Directory.EnumerateFiles(C.Paths.Config, "*.tmp"))
+            File.Delete(tmp);
 
         using var memoryDbConnection = new SqliteConnection(C.Paths.InMemoryDbConnectionString);
         memoryDbConnection.Open();
@@ -73,28 +74,55 @@ public static class IrcService
         memoryDb.Database.EnsureCreated();
         FillDb(memoryDb);
 
-        using var tempDbConnection = new SqliteConnection(C.Paths.TempDbConnectionString);
+        var tempFile = C.Paths.GetTempDbFile();
+        using var tempDbConnection = new SqliteConnection(C.Paths.GetDbConnectionString(tempFile));
         memoryDbConnection.BackupDatabase(tempDbConnection);
-        tempDbConnection.Dispose();
 
         if (File.Exists(C.Paths.ActiveDbFile))
-            File.Move(C.Paths.ActiveDbFile, C.Paths.InactiveDbFile);
-        File.Move(C.Paths.TempDbFile, C.Paths.ActiveDbFile);
-
-        try
-        {
-            File.Delete(C.Paths.InactiveDbFile);
-        }
-        catch (Exception)
-        {
-            // In use, we'll get it on next save
-        }
+            File.Delete(C.Paths.ActiveDbFile);
+        File.Move(tempFile, C.Paths.ActiveDbFile);
 
         if (wasRunning)
             StartAll();
     }
     static void FillDb(AppDbContext db)
     {
+        var start = DateTime.UtcNow;
+        var chunkSize = 1000;
+        var releasesToAdd = new List<Release>(chunkSize);
+        void InsertChunk()
+        {
+            if (releasesToAdd == null || !releasesToAdd.Any())
+                return;
+
+            var conn = db.Database.GetDbConnection();
+            using var transaction = conn.BeginTransaction();
+            var command = conn.CreateCommand();
+            command.CommandText = "INSERT INTO Releases(ServerId,ChannelId,BotId,Pack,Size,Title) VALUES ($srvId,$chId,$bId,$pack,$size,$title)";
+
+            var srvId = command.CreateParameter(); srvId.ParameterName = "$srvId"; command.Parameters.Add(srvId);
+            var chId = command.CreateParameter(); chId.ParameterName = "$chId"; command.Parameters.Add(chId);
+            var bId = command.CreateParameter(); bId.ParameterName = "$bId"; command.Parameters.Add(bId);
+            var pack = command.CreateParameter(); pack.ParameterName = "$pack"; command.Parameters.Add(pack);
+            var size = command.CreateParameter(); size.ParameterName = "$size"; command.Parameters.Add(size);
+            var title = command.CreateParameter(); title.ParameterName = "$title"; command.Parameters.Add(title);
+
+            foreach (var release in releasesToAdd)
+            {
+                srvId.Value = release.ServerId;
+                chId.Value = release.ChannelId;
+                bId.Value = release.BotId;
+                pack.Value = release.Pack;
+                size.Value = release.Size;
+                title.Value = release.Title;
+
+                command.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+            releasesToAdd.Clear();
+        };
+
         foreach (var indexer in Indexers)
         {
             var server = new Server(indexer.Opt.Server.Name, indexer.Opt.Server.Url)
@@ -106,8 +134,15 @@ public static class IrcService
             db.Servers.Add(server);
             db.SaveChanges();
 
+            var channels = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
+            var bots = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
+
+
             foreach (var line in indexer.Lines.Keys)
             {
+                if (releasesToAdd.Count == chunkSize)
+                    InsertChunk();
+
                 var data = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 var idx = data[0].IndexOf('!');
                 var sender = data[0][1..idx];
@@ -134,24 +169,37 @@ public static class IrcService
                     };
                 }
 
-                var channel = db.Channels.SingleOrDefault(c => c.Name == onChannel);
-                if (channel == null)
-                    channel = new(onChannel);
-
-                var bot = db.Bots.SingleOrDefault(b => b.Name == sender);
-                if (bot == null)
-                    bot = new(sender);
-
-                db.Releases.Add(new(release)
+                if (!channels.TryGetValue(onChannel, out var channelId))
                 {
-                    Bot = bot,
-                    Channel = channel,
+                    var channel = new Channel(onChannel);
+                    db.Channels.Add(channel);
+                    db.SaveChanges();
+
+                    channelId = channel.ChannelId;
+                    channels.Add(channel.Name, channel.ChannelId);
+                }
+
+                if (!bots.TryGetValue(sender, out var botId))
+                {
+                    var bot = new Bot(sender);
+                    db.Bots.Add(bot);
+                    db.SaveChanges();
+
+                    botId = bot.BotId;
+                    bots.Add(bot.Name, bot.BotId);
+                }
+
+                releasesToAdd.Add(new(release)
+                {
+                    BotId = botId,
+                    ChannelId = channelId,
                     Pack = pack,
                     Size = size,
-                    Server = server,
+                    ServerId = server.ServerId,
                 });
-                db.SaveChanges();
             }
         }
+        InsertChunk();
+        Console.WriteLine($"Inserted in {start - DateTime.UtcNow}");
     }
 }

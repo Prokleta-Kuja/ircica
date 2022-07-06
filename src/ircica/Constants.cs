@@ -51,10 +51,10 @@ public static class C
 
         public static string ActiveDbFile => ConfigFor("app.db");
         public static string InactiveDbFile => ConfigFor("prev.db");
-        public static string TempDbFile => ConfigFor("temp.db");
+        public static string GetTempDbFile() => ConfigFor($"{Guid.NewGuid()}.tmp");
         public const string InMemoryDbConnectionString = "Data Source=:memory:";
         public static string ActiveDbConnectionString => $"Data Source={ActiveDbFile}";
-        public static string TempDbConnectionString => $"Data Source={TempDbFile}";
+        public static string GetDbConnectionString(string path) => $"Data Source={path}";
     }
 }
 
