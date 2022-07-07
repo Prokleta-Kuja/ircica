@@ -1,4 +1,5 @@
 ﻿@page "/"
+@implements IDisposable
 
 <PageTitle>Index</PageTitle>
 
@@ -35,3 +36,22 @@
 <button @onclick=IrcService.CleanAllAsync>Clean</button>
 <button @onclick=IrcService.StartAll>Start</button>
 <button @onclick=IrcService.SaveAllAsync>Save</button>
+
+@code {
+    PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(5));
+    protected override void OnInitialized()
+    {
+        RunTimer();
+    }
+
+    async void RunTimer()
+    {
+        while (await periodicTimer.WaitForNextTickAsync())
+            StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        periodicTimer?.Dispose();
+    }
+}

@@ -57,30 +57,46 @@ public static class Program
 
                 /////////////////////////////////
                 ///"\u0002\u0003\u000f"
-                var funky = new HashSet<char> { '\u0002', '\u0003', '\u000f' };
-                var digits = new HashSet<char> { ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
-                if (release.StartsWith('\u0002'))
-                {
-                    var trimStart = -1;
-                    var trimEnd = release.Length;
+                // var funky = new HashSet<char> { '\u0002', '\u0003', '\u000f' };
+                // var digits = new HashSet<char> { ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+                // if (release.StartsWith('\u0002'))
+                // {
+                //     var trimStart = -1;
+                //     var trimEnd = release.Length;
 
-                    for (int i = 0; i < release.Length; i++)
-                        if (funky.Contains(release[i]) || digits.Contains(release[i]))
-                            trimStart = i;
-                        else
-                            break;
+                //     for (int i = 0; i < release.Length; i++)
+                //         if (funky.Contains(release[i]) || digits.Contains(release[i]))
+                //             trimStart = i;
+                //         else
+                //             break;
 
-                    for (int i = release.Length - 1; i >= 0; i--)
-                        if (funky.Contains(release[i]))
-                            trimEnd--;
-                        else
-                            break;
+                //     for (int i = release.Length - 1; i >= 0; i--)
+                //         if (funky.Contains(release[i]))
+                //             trimEnd--;
+                //         else
+                //             break;
 
-                    trimStart++;
-                    release = release[trimStart..trimEnd];
-                }
+                //     trimStart++;
+                //     release = release[trimStart..trimEnd];
+                // }
 
-                Console.WriteLine($"{packStr}-{pack}\t{sizeStr}-{size}\t{release}");
+                /*
+        '\u0002', // bold
+        '\u0003', // color
+        '\u0004', // hex color
+        '\u0016', // reverse color
+        '\u000f', // reset color
+        '\u0011', // monospace
+        '\u001d', // italics
+        '\u001f', // underline
+        '\u001e', // strikethrough
+                */
+
+                // var result = Regex.Match(@"[\u0002\u000f\u0011\u001e\u0016\u001d\u001f]|\u0003(\d{2}(,?\d{2})?)?", release);
+                var regex = new Regex(@"[\u0002\u000f\u0011\u001e\u0016\u001d\u001f]|\u0003(\d{2}(,?\d{2})?)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+                var result = regex.Replace(release, string.Empty);
+
+                Console.WriteLine($"{packStr}-{pack}\t{sizeStr}-{size}\t{result}");
 
             }
         }
