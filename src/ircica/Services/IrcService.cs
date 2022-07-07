@@ -189,7 +189,7 @@ public static class IrcService
                     bots.Add(bot.Name, bot.BotId);
                 }
 
-                releasesToAdd.Add(new(release)
+                releasesToAdd.Add(new(Unformat(release))
                 {
                     BotId = botId,
                     ChannelId = channelId,
@@ -200,6 +200,47 @@ public static class IrcService
             }
         }
         InsertChunk();
+
+        // TODO: Execute this
+        /*
+        CREATE VIRTUAL TABLE FTSReleases USING FTS5(Title, ReleaseId UNINDEXED, content=Releases, content_rowid=ReleaseId, tokenize = "unicode61 tokenchars '-_'");
+        INSERT INTO FTSReleases (Title, ReleaseId) SELECT Title, ReleaseId FROM Releases;
+        */
         Console.WriteLine($"Inserted in {start - DateTime.UtcNow}");
+    }
+    static readonly HashSet<char> s_funky = new() { '\u0002', '\u0003', '\u000f' };
+    static readonly HashSet<char> s_digits = new() { ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+    static string Unformat(string text)
+    {
+        if (!text.StartsWith('\u0002'))
+            return text;
+
+        try
+        {
+
+            var trimStart = -1;
+            var trimEnd = text.Length;
+
+            for (int i = 0; i < text.Length; i++)
+                if (s_funky.Contains(text[i]) || s_digits.Contains(text[i]))
+                    trimStart = i;
+                else
+                    break;
+
+            for (int i = text.Length - 1; i >= 0; i--)
+                if (s_funky.Contains(text[i]))
+                    trimEnd--;
+                else
+                    break;
+
+            trimStart++;
+            return text[trimStart..trimEnd];
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Unformat exception: {ex.Message}");
+            Console.WriteLine(text);
+            return text;
+        }
     }
 }

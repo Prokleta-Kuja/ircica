@@ -24,6 +24,7 @@ public static class Program
             // await indexer.Start(server, channels);
         }
         {
+            // var text = File.ReadAllText("kurac");
             var lines = File.ReadAllLines("kita");
             foreach (var line in lines)
             {
@@ -52,7 +53,35 @@ public static class Program
                         _ => parsedSize * 1024,
                     };
                 }
+                // Console.WriteLine($"{packStr}-{pack}\t{sizeStr}-{size}\t{release}");
+
+                /////////////////////////////////
+                ///"\u0002\u0003\u000f"
+                var funky = new HashSet<char> { '\u0002', '\u0003', '\u000f' };
+                var digits = new HashSet<char> { ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+                if (release.StartsWith('\u0002'))
+                {
+                    var trimStart = -1;
+                    var trimEnd = release.Length;
+
+                    for (int i = 0; i < release.Length; i++)
+                        if (funky.Contains(release[i]) || digits.Contains(release[i]))
+                            trimStart = i;
+                        else
+                            break;
+
+                    for (int i = release.Length - 1; i >= 0; i--)
+                        if (funky.Contains(release[i]))
+                            trimEnd--;
+                        else
+                            break;
+
+                    trimStart++;
+                    release = release[trimStart..trimEnd];
+                }
+
                 Console.WriteLine($"{packStr}-{pack}\t{sizeStr}-{size}\t{release}");
+
             }
         }
     }
