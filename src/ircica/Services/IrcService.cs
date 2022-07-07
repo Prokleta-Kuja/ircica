@@ -9,13 +9,13 @@ public static class IrcService
 {
     static CancellationTokenSource? _cts;
     static readonly Regex s_unformatter = new(@"[\u0002\u000f\u0011\u001e\u0016\u001d\u001f]|\u0003(\d{2}(,\d{2})?)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-    public static List<IrcIndexer> Indexers { get; private set; } = new();
+    public static List<IrcCollector> Indexers { get; private set; } = new();
     public static void LoadIndexers()
     {
         foreach (var server in C.Settings.Servers)
         {
             var opt = new IrcOptions(C.Settings.UserName, C.Settings.RealName, C.Settings.NickName, server);
-            var indexer = new IrcIndexer(opt);
+            var indexer = new IrcCollector(opt);
             Indexers.Add(indexer);
         }
     }
@@ -191,7 +191,7 @@ public static class IrcService
                 }
 
                 var unformatted = s_unformatter.Replace(release, string.Empty);
-                releasesToAdd.Add(new(unformatted + '|' + release)
+                releasesToAdd.Add(new(unformatted)
                 {
                     BotId = botId,
                     ChannelId = channelId,
@@ -204,7 +204,7 @@ public static class IrcService
         InsertChunk();
 
         db.Database.ExecuteSqlRaw(@"
-         CREATE VIRTUAL TABLE FTSReleases USING FTS5(Title, ReleaseId UNINDEXED, content=Releases, content_rowid=ReleaseId, tokenize = ""unicode61 tokenchars '-_'"");
+         CREATE VIRTUAL TABLE FTSReleases USING FTS5(Title, ReleaseId UNINDEXED, content=Releases, content_rowid=ReleaseId, tokenize = ""unicode61 separators '-_'"");
          INSERT INTO FTSReleases (Title, ReleaseId) SELECT Title, ReleaseId FROM Releases;
         ");
 

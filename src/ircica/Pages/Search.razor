@@ -1,0 +1,36 @@
+@attribute [Microsoft.AspNetCore.Components.RouteAttribute(C.Routes.Search)]
+
+<PageTitle>Search</PageTitle>
+
+<form @onsubmit=SearchAsync>
+    <input type="search" @bind=_term>
+    <input type="submit" value="Search">
+</form>
+@_message
+
+@if (_items.Any())
+{
+    <table class="table">
+    <thead>
+        <tr>
+            <th>Server</th>
+            <th>Channel</th>
+            <th>Size</th>
+            <th>Release</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in _items)
+            {
+                <tr>
+                    <td>@item.Server?.Name</td>
+                    <td>@item.Channel?.Name</td>
+                    <td>@GetHumanSize(item.Size)</td>
+                    <td>@item.Title</td>
+                    <td>Download</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

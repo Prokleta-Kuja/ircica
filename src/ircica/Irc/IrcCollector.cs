@@ -3,9 +3,9 @@ using System.Net.Sockets;
 
 namespace ircica;
 
-public class IrcIndexer
+public class IrcCollector
 {
-    public IrcIndexer(IrcOptions opt)
+    public IrcCollector(IrcOptions opt)
     {
         Opt = opt;
     }
