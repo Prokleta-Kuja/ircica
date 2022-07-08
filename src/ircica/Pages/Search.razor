@@ -15,6 +15,8 @@
         <tr>
             <th>Server</th>
             <th>Channel</th>
+            <th>Bot</th>
+            <th>Pack</th>
             <th>Size</th>
             <th>Release</th>
             <th></th>
@@ -26,9 +28,11 @@
                 <tr>
                     <td>@item.Server?.Name</td>
                     <td>@item.Channel?.Name</td>
+                    <td>@item.Bot?.Name</td>
+                    <td>@item.Pack</td>
                     <td>@GetHumanSize(item.Size)</td>
                     <td>@item.Title</td>
-                    <td>Download</td>
+                    <td><button @onclick=@(()=>Download(item))>Download</button></td>
                 </tr>
             }
         </tbody>

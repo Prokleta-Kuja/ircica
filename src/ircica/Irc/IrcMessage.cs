@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -24,6 +25,9 @@ public class IrcMessage
             {
                 if (data[3] == ":\u0001VERSION\u0001")
                     return new IrcVersionMessage(data);
+                if (data[3].StartsWith(":\u0001DCC", StringComparison.InvariantCultureIgnoreCase) &&
+                    data[4].Equals("SEND", StringComparison.InvariantCultureIgnoreCase))
+                    return new IrcDownloadMessage(data);
                 else
                     return new IrcDirectMessage(data);
             }
@@ -34,8 +38,6 @@ public class IrcMessage
         return new IrcUnknownMessage(data);
     }
 }
-
-
 
 public class IrcUnknownMessage : IrcMessage
 {
@@ -65,10 +67,9 @@ public class IrcMotdEndMessage : IrcMessage
     public async Task JoinChannels(HashSet<string> channels, StreamWriter writer)
     {
         foreach (var channel in channels)
-        {
             await writer.WriteLineAsync($"JOIN #{channel.TrimStart('#')}");
-            await writer.FlushAsync();
-        }
+
+        await writer.FlushAsync();
     }
 }
 
@@ -90,13 +91,28 @@ public class IrcVersionMessage : IrcMessage
 public class IrcDirectMessage : IrcMessage
 {
     public string Sender { get; }
-    public IEnumerable<string> Message { get; }
+    public string Message { get; }
     public DateTime Sent { get; } = DateTime.UtcNow;
     public IrcDirectMessage(string[] data)
     {
         var idx = data[0].IndexOf('!');
         Sender = data[0][1..idx];
-        Message = data.Skip(3);
+        Message = string.Join(' ', data.Skip(3));
+    }
+}
+
+public class IrcDownloadMessage : IrcDirectMessage
+{
+    public string FileName { get; set; }
+    public IPAddress IP { get; set; }
+    public int Port { get; set; }
+    public decimal Size { get; set; }
+    public IrcDownloadMessage(string[] data) : base(data)
+    {
+        FileName = data[5].Trim('"');
+        IP = IPAddress.Parse(data[6]);
+        Port = int.Parse(data[7]);
+        Size = decimal.Parse(data[8].Replace("\u0001", string.Empty));
     }
 }
 

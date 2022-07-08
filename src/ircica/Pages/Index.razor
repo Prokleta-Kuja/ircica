@@ -15,10 +15,10 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var indexer in IrcService.Indexers)
+        @foreach (var indexer in IrcService.Connections)
         {
             <tr>
-                <td>@indexer.Opt.Server.Name</td>
+                <td>@indexer.Server.Name</td>
                 <td>@indexer.Running</td>
                 <td>@indexer.Lines.Count.ToString("#,##0")</td>
                 <td>@indexer.Messages.Count.ToString("#,##0")</td>
@@ -26,7 +26,7 @@
         }
         <tr>
             <td colspan="2">Count</td>
-            <td>@IrcService.Indexers.Sum(i=>i.Lines.Count).ToString("#,##0")</td>
+            <td>@IrcService.Connections.Sum(i=>i.Lines.Count).ToString("#,##0")</td>
         </tr>
     </tbody>
 </table>

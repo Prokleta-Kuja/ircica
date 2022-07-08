@@ -9,15 +9,18 @@ public static class IrcService
 {
     static CancellationTokenSource? _cts;
     static readonly Regex s_unformatter = new(@"[\u0002\u000f\u0011\u001e\u0016\u001d\u001f]|\u0003(\d{2}(,\d{2})?)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
-    public static List<IrcCollector> Indexers { get; private set; } = new();
-    public static void LoadIndexers()
+    public static List<IrcConnection> Connections { get; private set; } = new();
+    public static List<IrcDownloader> Downloaders { get; set; } = new();
+    public static void LoadConnections()
     {
         foreach (var server in C.Settings.Servers)
         {
-            var opt = new IrcOptions(C.Settings.UserName, C.Settings.RealName, C.Settings.NickName, server);
-            var indexer = new IrcCollector(opt);
-            Indexers.Add(indexer);
+            var connection = new IrcConnection(server);
+            Connections.Add(connection);
         }
+
+        if (C.Settings.AutoStart)
+            StartAll();
     }
     public static void StartAll()
     {
@@ -29,13 +32,13 @@ public static class IrcService
 
         _cts = new();
 
-        foreach (var indexer in Indexers)
+        foreach (var indexer in Connections)
             _ = indexer.Start(_cts.Token);
     }
     public static void StopAll() => _cts?.Cancel();
     public static async Task CleanAllAsync()
     {
-        var wasRunning = Indexers.Any(i => i.Running);
+        var wasRunning = Connections.Any(i => i.Running);
         if (wasRunning)
         {
             StopAll();
@@ -43,7 +46,7 @@ public static class IrcService
         }
 
         var staleBefore = DateTime.UtcNow - TimeSpan.FromHours(24);
-        foreach (var indexer in Indexers)
+        foreach (var indexer in Connections)
         {
             var stale = indexer.Lines.Where(l => l.Value < staleBefore).Select(l => l.Key);
             foreach (var line in stale)
@@ -55,7 +58,7 @@ public static class IrcService
     }
     public static async Task SaveAllAsync()
     {
-        var wasRunning = Indexers.Any(i => i.Running);
+        var wasRunning = Connections.Any(i => i.Running);
         if (wasRunning)
         {
             StopAll();
@@ -124,12 +127,12 @@ public static class IrcService
             releasesToAdd.Clear();
         };
 
-        foreach (var indexer in Indexers)
+        foreach (var indexer in Connections)
         {
-            var server = new Server(indexer.Opt.Server.Name, indexer.Opt.Server.Url)
+            var server = new Server(indexer.Server.Name, indexer.Server.Url)
             {
-                Port = indexer.Opt.Server.Port,
-                SSL = indexer.Opt.Server.SSL,
+                Port = indexer.Server.Port,
+                SSL = indexer.Server.SSL,
             };
 
             db.Servers.Add(server);

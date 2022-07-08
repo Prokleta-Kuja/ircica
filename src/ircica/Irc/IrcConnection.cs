@@ -1,15 +1,14 @@
-using System.Diagnostics;
 using System.Net.Sockets;
 
 namespace ircica;
 
-public class IrcCollector
+public class IrcConnection
 {
-    public IrcCollector(IrcOptions opt)
+    public IrcConnection(IrcServer server)
     {
-        Opt = opt;
+        Server = server;
     }
-    public IrcOptions Opt { get; }
+    public IrcServer Server { get; }
     public bool Running { get; private set; }
     public List<IrcDirectMessage> Messages { get; } = new();
     public Dictionary<string, DateTime> Lines { get; } = new();
@@ -19,14 +18,14 @@ public class IrcCollector
         using var client = new TcpClient();
         try
         {
-            await client.ConnectAsync(Opt.Server.Url, Opt.Server.Port);
+            await client.ConnectAsync(Server.Url, Server.Port);
             using var stream = client.GetStream();
             using var reader = new StreamReader(stream);
             using var writer = new StreamWriter(stream);
             Running = true;
 
-            writer.WriteLine($"USER {Opt.UserName} 0 * {Opt.RealName}");
-            writer.WriteLine($"NICK {Opt.NickName}");
+            writer.WriteLine($"USER {C.Settings.UserName} 0 * {C.Settings.RealName}");
+            writer.WriteLine($"NICK {C.Settings.NickName}");
             writer.Flush();
 
             while (client.Connected)
@@ -38,14 +37,14 @@ public class IrcCollector
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
 
-                var message = IrcMessage.Parse(line, Opt.NickName);
+                var message = IrcMessage.Parse(line, C.Settings.NickName);
                 switch (message)
                 {
                     case IrcPingMessage ping:
                         await ping.WriteResponseAsync(writer);
                         break;
                     case IrcMotdEndMessage motd:
-                        await motd.JoinChannels(Opt.Server.Channels, writer);
+                        await motd.JoinChannels(Server.Channels, writer);
                         break;
                     case IrcVersionMessage version:
                         await version.WriteResponseAsync(writer);

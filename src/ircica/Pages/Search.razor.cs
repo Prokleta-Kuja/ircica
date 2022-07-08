@@ -37,6 +37,7 @@ public partial class Search
                 WHERE ft.Title MATCH({_term})")
                 .Include(r => r.Channel)
                 .Include(r => r.Server)
+                .Include(r => r.Bot)
                 .AsNoTracking()
                 .ToListAsync();
         }
@@ -46,8 +47,27 @@ public partial class Search
             _message = "Syntax error";
         }
     }
+    static void Download(Release release)
+    {
+        var download = new IrcDownload(release.Channel!.Name, release.Bot!.Name, release.Pack);
+        var downloader = IrcService.Downloaders.SingleOrDefault(d => d.Server.Url.Equals(release.Server!.Url, StringComparison.InvariantCultureIgnoreCase));
+        if (downloader == null)
+        {
+            var server = new IrcServer
+            {
+                Name = release.Server!.Name,
+                Url = release.Server!.Url,
+                Port = release.Server!.Port,
+            };
+            downloader = new(server);
+            IrcService.Downloaders.Add(downloader);
+            _ = downloader.Connect();
+        }
+
+        downloader.Enqueue(download);
+    }
     static readonly string[] s_sizes = { "B", "KB", "MB", "GB", "TB" };
-    string GetHumanSize(double bytes)
+    static string GetHumanSize(double bytes)
     {
         int order = 0;
         while (bytes >= 1024 && order < s_sizes.Length - 1)

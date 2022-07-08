@@ -1,0 +1,46 @@
+{
+  "UserName": "hip",
+  "RealName": "hip",
+  "NickName": "hip",
+  "DwUserName": "hipDw5",
+  "DwRealName": "hipDw5",
+  "DwNickName": "hipDw5",
+  "AutoStart": false,
+  "Servers": [
+    {
+      "Name": "Scene p2p",
+      "Url": "irc.scenep2p.net",
+      "Port": 6667,
+      "Channels": [
+        "THE.SOURCE"
+      ]
+    },
+    {
+      "Name": "Rizon",
+      "Url": "irc.rizon.net",
+      "Port": 6667,
+      "Channels": [
+        "Batcave",
+        "ELITEWAREZ",
+        "1WAREZ"
+      ]
+    },
+    {
+      "Name": "abjects",
+      "Url": "irc.abjects.net",
+      "Port": 6667,
+      "Channels": [
+        "beast-xdcc",
+        "moviegods"
+      ]
+    },
+    {
+      "Name": "future",
+      "Url": "the-future.sytes.net",
+      "Port": 6667,
+      "Channels": [
+        "the-future"
+      ]
+    }
+  ]
+}

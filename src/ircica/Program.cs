@@ -39,8 +39,7 @@ public class Program
         app.MapBlazorHub();
         app.MapFallbackToPage("/_Host");
 
-        IrcService.LoadIndexers();
-        IrcService.StartAll();
+        IrcService.LoadConnections();
 
         app.Run();
 
