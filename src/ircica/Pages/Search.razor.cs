@@ -22,8 +22,6 @@ public partial class Search
 
         var opt = new DbContextOptionsBuilder<AppDbContext>();
         opt.UseSqlite(C.Paths.ActiveDbConnectionString);
-        if (System.Diagnostics.Debugger.IsAttached)
-            opt.LogTo(message => Console.WriteLine(message), new[] { Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.CommandExecuted });
         using var db = new AppDbContext(opt.Options);
 
         try
@@ -49,22 +47,8 @@ public partial class Search
     }
     static void Download(Release release)
     {
-        var download = new IrcDownload(release.Channel!.Name, release.Bot!.Name, release.Pack);
-        var downloader = IrcService.Downloaders.SingleOrDefault(d => d.Server.Url.Equals(release.Server!.Url, StringComparison.InvariantCultureIgnoreCase));
-        if (downloader == null)
-        {
-            var server = new IrcServer
-            {
-                Name = release.Server!.Name,
-                Url = release.Server!.Url,
-                Port = release.Server!.Port,
-            };
-            downloader = new(server);
-            IrcService.Downloaders.Add(downloader);
-            _ = downloader.Connect();
-        }
-
-        downloader.Enqueue(download);
+        var request = new IrcDownloadRequest(release.Channel!.Name, release.Bot!.Name, release.Pack);
+        IrcService.RequestDownload(release.Server!.Url, request);
     }
     static readonly string[] s_sizes = { "B", "KB", "MB", "GB", "TB" };
     static string GetHumanSize(double bytes)

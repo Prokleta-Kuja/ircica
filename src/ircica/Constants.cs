@@ -64,10 +64,8 @@ public class Settings
     public string UserName { get; set; } = "ircica";
     public string RealName { get; set; } = "ircica";
     public string NickName { get; set; } = "ircica";
-    public string DwUserName { get; set; } = "ircicaDw";
-    public string DwRealName { get; set; } = "ircicaDw";
-    public string DwNickName { get; set; } = "ircicaDw";
-    public bool AutoStart { get; set; } = true;
+    public bool AutoConnect { get; set; } = true;
+    public bool AutoCollect { get; set; } = true;
     public List<IrcServer> Servers { get; set; } = new() { new() { Name = "Something", Url = "irc.something.net", Channels = new() { "A", "B" }, Port = 6667 } };
     public bool Validate(out string? message)
     {

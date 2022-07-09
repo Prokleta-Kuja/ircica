@@ -7,10 +7,13 @@ namespace ircica;
 
 public static class IrcService
 {
+    static readonly PeriodicTimer _cleanLogsTimer = new(TimeSpan.FromHours(1));
     static CancellationTokenSource? _cts;
     static readonly Regex s_unformatter = new(@"[\u0002\u000f\u0011\u001e\u0016\u001d\u001f]|\u0003(\d{2}(,\d{2})?)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     public static List<IrcConnection> Connections { get; private set; } = new();
-    public static List<IrcDownloader> Downloaders { get; set; } = new();
+    public static List<IrcDownload> Downloads { get; } = new();
+    public static bool Connected { get; private set; }
+    public static bool Collecting { get; private set; }
     public static void LoadConnections()
     {
         foreach (var server in C.Settings.Servers)
@@ -19,10 +22,12 @@ public static class IrcService
             Connections.Add(connection);
         }
 
-        if (C.Settings.AutoStart)
-            StartAll();
+        if (C.Settings.AutoConnect)
+            ConnectAll();
+
+        RunClenLogsTimer();
     }
-    public static void StartAll()
+    public static void ConnectAll()
     {
         if (_cts != null)
         {
@@ -32,18 +37,38 @@ public static class IrcService
 
         _cts = new();
 
-        foreach (var indexer in Connections)
-            _ = indexer.Start(_cts.Token);
+        foreach (var connection in Connections)
+            _ = connection.Start(_cts.Token);
+
+        Connected = true;
     }
-    public static void StopAll() => _cts?.Cancel();
-    public static async Task CleanAllAsync()
+    public static void DisconnectAll()
     {
-        var wasRunning = Connections.Any(i => i.Running);
-        if (wasRunning)
-        {
-            StopAll();
-            await Task.Delay(TimeSpan.FromSeconds(2));
-        }
+        _cts?.Cancel();
+        Connected = false;
+    }
+    public static void StopCollecting()
+    {
+        Collecting = false;
+        foreach (var connection in Connections)
+            connection.Collecting = Collecting;
+    }
+    public static void StartCollecting()
+    {
+        Collecting = true;
+        foreach (var connection in Connections)
+            connection.Collecting = Collecting;
+    }
+    static async void RunClenLogsTimer()
+    {
+        while (await _cleanLogsTimer.WaitForNextTickAsync())
+            CleanLogs();
+    }
+    public static void CleanLogs()
+    {
+        var wasCollecting = Collecting;
+        if (wasCollecting)
+            StopCollecting();
 
         var staleBefore = DateTime.UtcNow - TimeSpan.FromHours(24);
         foreach (var indexer in Connections)
@@ -53,17 +78,34 @@ public static class IrcService
                 indexer.Lines.Remove(line);
         }
 
-        if (wasRunning)
-            StartAll();
+        if (wasCollecting)
+            StartCollecting();
     }
-    public static async Task SaveAllAsync()
+    public static void RequestDownload(string serverUrl, IrcDownloadRequest request)
     {
-        var wasRunning = Connections.Any(i => i.Running);
-        if (wasRunning)
+        var connection = Connections.SingleOrDefault(c => c.Server.Url == serverUrl);
+        if (connection == null)
         {
-            StopAll();
-            await Task.Delay(TimeSpan.FromSeconds(2));
+            Console.WriteLine("Connection not found, skipping download");
+            return;
         }
+
+        connection.DownloadRequests.Enqueue(request);
+        Downloads.Add(new IrcDownload(request.Bot));
+    }
+    public static void Download(IrcDownloadMessage message)
+    {
+        var download = Downloads.FirstOrDefault(d => d.Status == IrcDownloadStatus.Requested && d.Bot.Equals(message.Sender, StringComparison.InvariantCultureIgnoreCase));
+        if (download != null)
+            _ = download.Start(message);
+        else
+            Console.WriteLine($"Unsolicited download from {message.Sender} {message.Message}");
+    }
+    public static void BuildIndex()
+    {
+        var wasCollecting = Collecting;
+        if (wasCollecting)
+            StopCollecting();
 
         File.Delete(C.Paths.InactiveDbFile);
         foreach (var tmp in Directory.EnumerateFiles(C.Paths.Config, "*.tmp"))
@@ -86,8 +128,8 @@ public static class IrcService
             File.Delete(C.Paths.ActiveDbFile);
         File.Move(tempFile, C.Paths.ActiveDbFile);
 
-        if (wasRunning)
-            StartAll();
+        if (wasCollecting)
+            StartCollecting();
     }
     static void FillDb(AppDbContext db)
     {
@@ -211,6 +253,6 @@ public static class IrcService
          INSERT INTO FTSReleases (Title, ReleaseId) SELECT Title, ReleaseId FROM Releases;
         ");
 
-        Console.WriteLine($"Inserted in {start - DateTime.UtcNow}");
+        Console.WriteLine($"Inserted in {DateTime.UtcNow - start}");
     }
 }

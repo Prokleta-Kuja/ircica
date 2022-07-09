@@ -1,37 +1,25 @@
 @attribute [Microsoft.AspNetCore.Components.RouteAttribute(C.Routes.Download)]
 
-
-@foreach (var downloader in IrcService.Downloaders)
-{
-    <table class="table">
+<table class="table">
     <thead>
         <tr>
-            <th colspan="20">@downloader.Server.Name @(downloader.Connected?"Connected":"Disconnected")</th>
-        </tr>
-        <tr>
             <th>Bot</th>
-            <th>Pack</th>
-            <th>Progress</th>
             <th>Status</th>
+            <th>%</th>
+            <th>File</th>
+            <th>Size</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var download in downloader.Downloads)
-            {
-                <tr>
-                    <td>@download.Bot</td>
-                    <td>@download.Pack</td>
-                    <td>@download.Progress.ToString("0.00") %</td>
-                    <td>@download.Status</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-
-    <ul>
-    @foreach (var message in downloader.Messages)
+        @foreach (var download in IrcService.Downloads)
         {
-            <li>@message.Sender @message.Sender: @message.Message</li>
+            <tr>
+                <td>@download.Bot</td>
+                <td>@download.Status</td>
+                <td>@download.Progress %</td>
+                <td>@download.Message?.FileName</td>
+                <td>@download.Message?.Size</td>
+            </tr>
         }
-    </ul>
-}
+    </tbody>
+</table>

@@ -10,12 +10,12 @@ public static class Program
     public static async Task Main()
     {
         {
-            var exampleTransfer = new Transfer(USER, REAL, NICK);
-            var server = "irc.abjects.net";
-            var channel = "#moviegods";
-            var bot = "[MG]-X265|EU|S|JeRrYFaR";
-            var pack = "#603";
-            await exampleTransfer.Start(server, channel, bot, pack);
+            // var exampleTransfer = new Transfer(USER, REAL, NICK);
+            // var server = "irc.abjects.net";
+            // var channel = "#moviegods";
+            // var bot = "[MG]-X265|EU|S|JeRrYFaR";
+            // var pack = "#603";
+            // await exampleTransfer.Start(server, channel, bot, pack);
         }
         {
             // var indexer = new Indexer(USER, REAL, NICK);

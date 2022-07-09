@@ -9,7 +9,8 @@
     <thead>
         <tr>
             <th>Channel</th>
-            <th>Running</th>
+            <th>Connected</th>
+            <th>Collecting</th>
             <th>Announcements</th>
             <th>Messages</th>
         </tr>
@@ -19,26 +20,32 @@
         {
             <tr>
                 <td>@indexer.Server.Name</td>
-                <td>@indexer.Running</td>
+                <td>@indexer.Connected</td>
+                <td>@indexer.Collecting</td>
                 <td>@indexer.Lines.Count.ToString("#,##0")</td>
                 <td>@indexer.Messages.Count.ToString("#,##0")</td>
             </tr>
         }
         <tr>
-            <td colspan="2">Count</td>
+            <td>Count</td>
+            <td>@IrcService.Connected</td>
+            <td>@IrcService.Collecting</td>
             <td>@IrcService.Connections.Sum(i=>i.Lines.Count).ToString("#,##0")</td>
+            <td>@IrcService.Connections.Sum(i=>i.Messages.Count).ToString("#,##0")</td>
         </tr>
     </tbody>
 </table>
 
 <button @onclick=StateHasChanged>Refresh</button>
-<button @onclick=IrcService.StopAll>Stop</button>
-<button @onclick=IrcService.CleanAllAsync>Clean</button>
-<button @onclick=IrcService.StartAll>Start</button>
-<button @onclick=IrcService.SaveAllAsync>Save</button>
+<button @onclick=IrcService.DisconnectAll>Disconnect</button>
+<button @onclick=IrcService.ConnectAll>Connect</button>
+<button @onclick=IrcService.StopCollecting>Stop collecting</button>
+<button @onclick=IrcService.StartCollecting>Start collecting</button>
+<button @onclick=IrcService.CleanLogs>Clean</button>
+<button @onclick=IrcService.BuildIndex>Build index</button>
 
 @code {
-    PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(5));
+    readonly PeriodicTimer _periodicTimer = new(TimeSpan.FromSeconds(2));
     protected override void OnInitialized()
     {
         RunTimer();
@@ -46,12 +53,12 @@
 
     async void RunTimer()
     {
-        while (await periodicTimer.WaitForNextTickAsync())
+        while (await _periodicTimer.WaitForNextTickAsync())
             StateHasChanged();
     }
 
     public void Dispose()
     {
-        periodicTimer?.Dispose();
+        _periodicTimer?.Dispose();
     }
 }

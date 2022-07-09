@@ -43,7 +43,7 @@ public class Program
 
         app.Run();
 
-        IrcService.StopAll();
+        IrcService.DisconnectAll();
     }
     static void InitializeDirectories()
     {

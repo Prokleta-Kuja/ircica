@@ -9,10 +9,11 @@ public class IrcConnection
         Server = server;
     }
     public IrcServer Server { get; }
-    public bool Running { get; private set; }
+    public bool Connected { get; private set; }
+    public bool Collecting { get; set; }
     public List<IrcDirectMessage> Messages { get; } = new();
     public Dictionary<string, DateTime> Lines { get; } = new();
-
+    public Queue<IrcDownloadRequest> DownloadRequests { get; set; } = new();
     public async Task Start(CancellationToken ct)
     {
         using var client = new TcpClient();
@@ -22,7 +23,6 @@ public class IrcConnection
             using var stream = client.GetStream();
             using var reader = new StreamReader(stream);
             using var writer = new StreamWriter(stream);
-            Running = true;
 
             writer.WriteLine($"USER {C.Settings.UserName} 0 * {C.Settings.RealName}");
             writer.WriteLine($"NICK {C.Settings.NickName}");
@@ -32,6 +32,9 @@ public class IrcConnection
             {
                 if (ShouldQuit(writer, ct))
                     return;
+
+                if (DownloadRequests.TryDequeue(out var request))
+                    await request.RequestAsync(writer);
 
                 var line = await reader.ReadLineAsync().WaitAsync(ct).ConfigureAwait(false);
                 if (string.IsNullOrWhiteSpace(line))
@@ -45,18 +48,24 @@ public class IrcConnection
                         break;
                     case IrcMotdEndMessage motd:
                         await motd.JoinChannels(Server.Channels, writer);
+                        Connected = true;
                         break;
                     case IrcVersionMessage version:
                         await version.WriteResponseAsync(writer);
+                        break;
+                    case IrcDownloadMessage downloadMessage:
+                        Messages.Add(downloadMessage);
+                        IrcService.Download(downloadMessage);
                         break;
                     case IrcDirectMessage direct:
                         Messages.Add(direct);
                         break;
                     case IrcAnnouncementMessage announce:
-                        if (Lines.ContainsKey(line))
-                            Lines[line] = DateTime.UtcNow;
-                        else
-                            Lines.Add(line, DateTime.UtcNow);
+                        if (Collecting)
+                            if (Lines.ContainsKey(line))
+                                Lines[line] = DateTime.UtcNow;
+                            else
+                                Lines.Add(line, DateTime.UtcNow);
                         break;
                     default:
                         break;
@@ -67,7 +76,8 @@ public class IrcConnection
         catch (TaskCanceledException) { }
         finally
         {
-            Running = false;
+            Connected = false;
+            Collecting = false;
         }
     }
     static bool ShouldQuit(StreamWriter writer, CancellationToken cancellationToken)
