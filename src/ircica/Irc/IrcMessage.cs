@@ -107,12 +107,17 @@ public class IrcDownloadMessage : IrcDirectMessage
     public IPAddress IP { get; set; }
     public int Port { get; set; }
     public decimal Size { get; set; }
+    public bool IsReverseDcc { get; set; }
+    public string? Token { get; set; }
     public IrcDownloadMessage(string[] data) : base(data)
     {
         FileName = data[5].Trim('"');
         IP = IPAddress.Parse(data[6]);
         Port = int.Parse(data[7]);
         Size = decimal.Parse(data[8].Replace("\u0001", string.Empty));
+        IsReverseDcc = Port == 0;
+        if (IsReverseDcc && data.Length > 9)
+            Token = data[9].Replace("\u0001", string.Empty);
     }
 }
 

@@ -33,7 +33,7 @@ public class IrcConnection
                 if (ShouldQuit(writer, ct))
                     return;
 
-                if (DownloadRequests.TryDequeue(out var request))
+                if (Connected && DownloadRequests.TryDequeue(out var request))
                     await request.RequestAsync(writer);
 
                 var line = await reader.ReadLineAsync().WaitAsync(ct).ConfigureAwait(false);

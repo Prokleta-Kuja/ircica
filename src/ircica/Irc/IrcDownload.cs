@@ -19,13 +19,19 @@ public class IrcDownload
     {
         Message = message;
 
+        if (message.IsReverseDcc)
+        {
+            Status = IrcDownloadStatus.FailedReverseDcc;
+            return;
+        }
+
+        var file = new FileInfo(C.Paths.DataFor(message.FileName));
         try
         {
-            var file = new FileInfo(C.Paths.DataFor(message.FileName));
-            using var fileStream = file.OpenWrite();
             using var client = new TcpClient(message.IP.ToString(), message.Port);
             using var clientStream = client.GetStream();
             Status = IrcDownloadStatus.Downloading;
+            using var fileStream = file.OpenWrite();
 
             _cts = new();
             var buffer = new byte[1024 * 128];
@@ -49,9 +55,12 @@ public class IrcDownload
 
             sw.Stop();
         }
-        catch (TaskCanceledException)
+        catch (Exception)
         {
             Status = IrcDownloadStatus.Failed;
+            file.Refresh();
+            if (file.Exists)
+                file.Delete();
         }
     }
     public void Stop()
@@ -66,4 +75,5 @@ public enum IrcDownloadStatus
     Downloading,
     Complete,
     Failed,
+    FailedReverseDcc,
 }

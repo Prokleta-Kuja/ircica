@@ -11,7 +11,7 @@ public static class IrcService
     static CancellationTokenSource? _cts;
     static readonly Regex s_unformatter = new(@"[\u0002\u000f\u0011\u001e\u0016\u001d\u001f]|\u0003(\d{2}(,\d{2})?)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     public static List<IrcConnection> Connections { get; private set; } = new();
-    public static List<IrcDownload> Downloads { get; } = new();
+    public static List<IrcDownload> Downloads { get; private set; } = new();
     public static bool Connected { get; private set; }
     public static bool Collecting { get; private set; }
     public static void LoadConnections()
