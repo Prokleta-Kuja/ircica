@@ -48,7 +48,7 @@ public class Program
     static void InitializeDirectories()
     {
         Directory.CreateDirectory(C.Paths.Config);
-        //Directory.CreateDirectory(C.Paths.Data);
+        Directory.CreateDirectory(C.Paths.Data);
 
         var settingsJson = C.Paths.ConfigFor("settings.json");
         var settingsJsonExample = C.Paths.ConfigFor("settings.example.json");
