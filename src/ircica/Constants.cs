@@ -36,7 +36,9 @@ public static class C
         public const string Forbidden = "/forbidden";
         public const string Search = "/search";
         public const string Download = "/download";
-        public const string Newznab = "/newznab/api";
+        public const string NewznabApi = "/newznab/api";
+        public const string NewznabDownload = "/newznab/download/{id}";
+        public static string NeznabDownloadFor(Guid id) => $"/newznab/download/{id}";
     }
     public static class Query
     {

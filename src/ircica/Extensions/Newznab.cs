@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using ircica.Entities;
@@ -16,8 +18,16 @@ public static class WebApplicationExtensions
             Console.WriteLine($"Url: {req.Path} - {req.QueryString}");
             await next();
         });
-        // Relativni linkovi rade, tako da dodaj rutu za skidanje
-        app.MapGet(C.Routes.Newznab, async (HttpContext ctx) =>
+        app.MapGet(C.Routes.NewznabDownload, async (Guid id, HttpContext ctx) =>
+        {
+            var release = await Newznab.GetByUniqueIdAsync(id);
+            if (release == null)
+                return Results.NotFound();
+
+            var downloadBytes = Newznab.GetNzbBytes(release);
+            return Results.File(downloadBytes, "application/x-nzb", $"{release.Title}.irc");
+        });
+        app.MapGet(C.Routes.NewznabApi, async (HttpContext ctx) =>
         {
             await Task.CompletedTask;
             //http://192.168.123.3:5000/newznab/api
@@ -152,15 +162,15 @@ public static class Newznab
         var items = new List<XElement>();
         foreach (var result in releases.Results)
         {
+            var download = C.Routes.NeznabDownloadFor(result.UniqueId);
             var itemElements = new List<XElement>();
-            // TODO: Link i Enclosure su isti
             itemElements.Add(new XElement("title", result.Title));
-            itemElements.Add(new XElement("guid", result.UniqueId, new XAttribute("isPermaLink", "true"))); // TODO: link na download
-            itemElements.Add(new XElement("link", "/505-sa-crtom.nzb"));
+            itemElements.Add(new XElement("guid", result.UniqueId, new XAttribute("isPermaLink", "true")));
+            itemElements.Add(new XElement("link", download));
             itemElements.Add(new XElement("pubDate", result.FirstSeen.ToString("ddd, dd MMM yyyy HH:mm:ss K")));
             itemElements.Add(new XElement(newznabNs + "attr", result.Size, new XAttribute("name", "size")));
             itemElements.Add(new XElement("enclosure",
-                new XAttribute("url", "/505-sa-crtom.nzb"), // TODO: probaj drugu ekstenziju
+                new XAttribute("url", download),
                 new XAttribute("length", result.Size),
                 new XAttribute("type", "application/x-nzb")));
 
@@ -175,21 +185,48 @@ public static class Newznab
             items.Add(new XElement("item", itemElements));
         }
 
-        var channel = new XElement("channel", response, items);
-        var rss = new XElement("rss", new XAttribute(XNamespace.Xmlns + "atom", atomNs), new XAttribute(XNamespace.Xmlns + "newznab", newznabNs), channel);
-        rss.SetAttributeValue("version", "2.0");
+        var rss = new XElement("rss",
+            new XAttribute("version", "2.0"),
+            new XAttribute(XNamespace.Xmlns + "atom", atomNs),
+            new XAttribute(XNamespace.Xmlns + "newznab", newznabNs),
+            new XElement("channel", response, items));
+
         var doc = new XDocument(rss);
         return GetString(doc);
     }
+    public static async Task<Release?> GetByUniqueIdAsync(Guid id)
+    {
+        using var db = GetDb();
+        return await db.Releases
+            .Include(r => r.Server)
+            .Include(r => r.Channel)
+            .Include(r => r.Bot)
+            .AsNoTracking()
+            .SingleOrDefaultAsync(r => r.UniqueId == id);
+    }
+    public static byte[] GetNzbBytes(Release release)
+    {
+        var download = new IrcDownloadRequest(release.Server!.Url, release.Channel!.Name, release.Bot!.Name, release.Pack);
+        var downloadSerialized = JsonSerializer.Serialize(download);
+
+        var doc = new XDocument(new("1.0", "utf-8", "yes"), new XElement("nzb", new XElement("file", downloadSerialized)));
+        var docString = GetString(doc);
+
+        return Encoding.UTF8.GetBytes(docString);
+    }
     static async Task<(int Count, List<Release> Results)> DoSearchAsync(int offset, int limit, string term, string tvSuffix, DateTime? maxAge)
     {
-        var opt = new DbContextOptionsBuilder<AppDbContext>();
-        opt.UseSqlite(C.Paths.ActiveDbConnectionString);
-        using var db = new AppDbContext(opt.Options);
-
+        using var db = GetDb();
         IQueryable<Release>? query;
 
         if (string.IsNullOrWhiteSpace(term))
+            query = db.Releases.FromSqlRaw($@"
+            SELECT 
+                r.*
+            FROM FTSReleases ft
+                INNER JOIN Releases r ON r.ReleaseId = ft.ReleaseId
+            ORDER BY r.FirstSeen DESC");
+        else
         {
             if (!string.IsNullOrWhiteSpace(tvSuffix))
                 term = $"{term} {tvSuffix}";
@@ -201,13 +238,6 @@ public static class Newznab
             WHERE ft.Title MATCH({term})
             ORDER BY rank, r.Size");
         }
-        else
-            query = db.Releases.FromSqlInterpolated($@"
-            SELECT 
-                r.*
-            FROM FTSReleases ft
-                INNER JOIN Releases r ON r.ReleaseId = ft.ReleaseId
-            ORDER BY r.FirstSeen DESC");
 
         if (maxAge.HasValue)
             query = query.Where(r => r.FirstSeen > maxAge);
@@ -223,5 +253,14 @@ public static class Newznab
             .ToListAsync();
 
         return (count, releases);
+    }
+    static AppDbContext GetDb()
+    {
+
+        var opt = new DbContextOptionsBuilder<AppDbContext>();
+        opt.UseSqlite(C.Paths.ActiveDbConnectionString);
+        opt.LogTo(message => System.Diagnostics.Debug.WriteLine(message), new[] { Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.CommandExecuting });
+        opt.EnableSensitiveDataLogging(true);
+        return new AppDbContext(opt.Options);
     }
 }
