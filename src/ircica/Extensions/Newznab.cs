@@ -136,7 +136,7 @@ public static class Newznab
         if (query.TryGetValue("maxage", out var maxAgeQ) && int.TryParse(maxAgeQ.ToString(), out var maxAgeV))
             maxAge = DateTime.UtcNow.Date.AddDays(-maxAgeV);
 
-        var tvSuffix = exx != 0 ? $"S{sxx:00}E{exx:00}" : sxx != 0 ? $"S{sxx:00}" : string.Empty;
+        var tvSuffix = exx != 0 ? $"S{sxx:00}E{exx:00}" : sxx != 0 ? $"S{sxx:00}*" : string.Empty;
         var releases = validRequest ? await DoSearchAsync(offset, limit, term, tvSuffix, maxAge) : (Count: 0, Results: new List<Release>(0));
         var total = releases.Count;
 
