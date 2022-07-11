@@ -2,13 +2,20 @@ namespace ircica;
 
 public class IrcDownloadRequest
 {
-    public IrcDownloadRequest(string channel, string bot, int pack)
+    internal IrcDownloadRequest()
     {
+        Server = null!;
+        Channel = null!;
+        Bot = null!;
+    }
+    public IrcDownloadRequest(string server, string channel, string bot, int pack)
+    {
+        Server = server;
         Channel = channel;
         Bot = bot;
         Pack = pack;
     }
-
+    public string Server { get; set; }
     public string Channel { get; }
     public string Bot { get; }
     public int Pack { get; }

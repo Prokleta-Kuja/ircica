@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace ircica.Entities;
 
@@ -37,5 +38,26 @@ public partial class AppDbContext : DbContext
             e.HasKey(p => p.ServerId);
             e.HasMany(p => p.Releases).WithOne(p => p.Server!);
         });
+
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            var dtProperties = entityType.ClrType.GetProperties()
+                .Where(p => p.PropertyType == typeof(DateTime) || p.PropertyType == typeof(DateTime?));
+
+            foreach (var property in dtProperties)
+                builder
+                    .Entity(entityType.Name)
+                    .Property(property.Name)
+                    .HasConversion(new DateTimeToBinaryConverter());
+
+            var decProperties = entityType.ClrType.GetProperties()
+                .Where(p => p.PropertyType == typeof(decimal) || p.PropertyType == typeof(decimal?));
+
+            foreach (var property in decProperties)
+                builder
+                    .Entity(entityType.Name)
+                    .Property(property.Name)
+                    .HasConversion<double>();
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Net;
+using System.Text.RegularExpressions;
 
 namespace test;
 
@@ -9,6 +10,7 @@ public static class Program
     const string NICK = "hippo";
     public static async Task Main()
     {
+        Console.WriteLine(DateTime.UtcNow.AddDays(-1).ToBinary());
         {
             // var exampleTransfer = new Transfer(USER, REAL, NICK);
             // var server = "irc.abjects.net";

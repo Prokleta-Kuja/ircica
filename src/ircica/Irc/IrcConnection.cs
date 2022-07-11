@@ -12,7 +12,7 @@ public class IrcConnection
     public bool Connected { get; private set; }
     public bool Collecting { get; set; }
     public List<IrcDirectMessage> Messages { get; } = new();
-    public Dictionary<string, DateTime> Lines { get; } = new();
+    public Dictionary<string, (DateTime First, DateTime Last)> Lines { get; } = new();
     public Queue<IrcDownloadRequest> DownloadRequests { get; set; } = new();
     public async Task Start(CancellationToken ct)
     {
@@ -63,9 +63,9 @@ public class IrcConnection
                     case IrcAnnouncementMessage announce:
                         if (Collecting)
                             if (Lines.ContainsKey(line))
-                                Lines[line] = DateTime.UtcNow;
+                                Lines[line] = (Lines[line].First, DateTime.UtcNow);
                             else
-                                Lines.Add(line, DateTime.UtcNow);
+                                Lines.Add(line, (DateTime.UtcNow, DateTime.UtcNow));
                         break;
                     default:
                         break;

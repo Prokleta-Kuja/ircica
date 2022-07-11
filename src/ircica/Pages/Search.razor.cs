@@ -6,7 +6,7 @@ namespace ircica.Pages;
 
 public partial class Search
 {
-    string _term = string.Empty;
+    string _term = "phantom open";// string.Empty;
     string _message = string.Empty;
     List<Release> _items = new();
 
@@ -47,8 +47,11 @@ public partial class Search
     }
     static void Download(Release release)
     {
-        var request = new IrcDownloadRequest(release.Channel!.Name, release.Bot!.Name, release.Pack);
-        IrcService.RequestDownload(release.Server!.Url, request);
+        var request = new IrcDownloadRequest(release.Server!.Url,
+                                             release.Channel!.Name,
+                                             release.Bot!.Name,
+                                             release.Pack);
+        IrcService.RequestDownload(request);
     }
     static readonly string[] s_sizes = { "B", "KB", "MB", "GB", "TB" };
     static string GetHumanSize(double bytes)

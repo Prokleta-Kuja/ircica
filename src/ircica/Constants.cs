@@ -36,6 +36,7 @@ public static class C
         public const string Forbidden = "/forbidden";
         public const string Search = "/search";
         public const string Download = "/download";
+        public const string Newznab = "/newznab/api";
     }
     public static class Query
     {
@@ -47,8 +48,12 @@ public static class C
     {
         public static string Config => Path.Combine(Environment.CurrentDirectory, "config");
         public static string ConfigFor(string file) => Path.Combine(Config, file);
-        public static string Data => Path.Combine(Environment.CurrentDirectory, "data");
-        public static string DataFor(string file) => Path.Combine(Data, file);
+        public static string Blackhole => Path.Combine(Environment.CurrentDirectory, "blackhole");
+        public static string BlackholeFor(string file) => Path.Combine(Blackhole, file);
+        public static string Incomplete => Path.Combine(Environment.CurrentDirectory, "incomplete");
+        public static string IncompleteFor(string file) => Path.Combine(Incomplete, file);
+        public static string Complete => Path.Combine(Environment.CurrentDirectory, "complete");
+        public static string CompleteFor(string file) => Path.Combine(Complete, file);
 
         public static string ActiveDbFile => ConfigFor("app.db");
         public static string InactiveDbFile => ConfigFor("prev.db");

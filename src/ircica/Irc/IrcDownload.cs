@@ -25,7 +25,7 @@ public class IrcDownload
             return;
         }
 
-        var file = new FileInfo(C.Paths.DataFor(message.FileName));
+        var file = new FileInfo(C.Paths.IncompleteFor(message.FileName));
         try
         {
             using var client = new TcpClient(message.IP.ToString(), message.Port);

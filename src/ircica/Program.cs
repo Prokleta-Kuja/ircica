@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ircica.Extensions;
 using ircica.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 
@@ -9,6 +10,9 @@ public class Program
     public static void Main(string[] args)
     {
         InitializeDirectories();
+        using var fileWatcher = BlackholeService.GetWatcher();
+        fileWatcher.Enable();
+
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.       
@@ -36,6 +40,7 @@ public class Program
 
         app.UseRouting();
 
+        app.MapNewznab();
         app.MapBlazorHub();
         app.MapFallbackToPage("/_Host");
 
@@ -48,7 +53,9 @@ public class Program
     static void InitializeDirectories()
     {
         Directory.CreateDirectory(C.Paths.Config);
-        Directory.CreateDirectory(C.Paths.Data);
+        Directory.CreateDirectory(C.Paths.Blackhole);
+        Directory.CreateDirectory(C.Paths.Incomplete);
+        Directory.CreateDirectory(C.Paths.Complete);
 
         var settingsJson = C.Paths.ConfigFor("settings.json");
         var settingsJsonExample = C.Paths.ConfigFor("settings.example.json");

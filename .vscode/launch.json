@@ -7,9 +7,12 @@
             "request": "launch",
             "preLaunchTask": "build-ircica",
             "program": "${workspaceFolder}/src/ircica/bin/Debug/net6.0/ircica.dll",
-            "args": [],
             "cwd": "${workspaceFolder}/src/ircica",
-            "stopAtEntry": false
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://0.0.0.0:5000"
+            },
         },
         {
             "name": "test",

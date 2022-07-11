@@ -73,7 +73,7 @@ public static class IrcService
         var staleBefore = DateTime.UtcNow - TimeSpan.FromHours(24);
         foreach (var indexer in Connections)
         {
-            var stale = indexer.Lines.Where(l => l.Value < staleBefore).Select(l => l.Key);
+            var stale = indexer.Lines.Where(l => l.Value.Last < staleBefore).Select(l => l.Key);
             foreach (var line in stale)
                 indexer.Lines.Remove(line);
         }
@@ -81,9 +81,9 @@ public static class IrcService
         if (wasCollecting)
             StartCollecting();
     }
-    public static void RequestDownload(string serverUrl, IrcDownloadRequest request)
+    public static void RequestDownload(IrcDownloadRequest request)
     {
-        var connection = Connections.SingleOrDefault(c => c.Server.Url == serverUrl);
+        var connection = Connections.SingleOrDefault(c => c.Server.Url == request.Server);
         if (connection == null)
         {
             Console.WriteLine("Connection not found, skipping download");
@@ -144,14 +144,16 @@ public static class IrcService
             var conn = db.Database.GetDbConnection();
             using var transaction = conn.BeginTransaction();
             var command = conn.CreateCommand();
-            command.CommandText = "INSERT INTO Releases(ServerId,ChannelId,BotId,Pack,Size,Title) VALUES ($srvId,$chId,$bId,$pack,$size,$title)";
+            command.CommandText = "INSERT INTO Releases(UniqueId,ServerId,ChannelId,BotId,Pack,Size,Title,FirstSeen) VALUES ($uniqueId,$srvId,$chId,$bId,$pack,$size,$title,$first)";
 
+            var uniqueId = command.CreateParameter(); uniqueId.ParameterName = "$uniqueId"; command.Parameters.Add(uniqueId);
             var srvId = command.CreateParameter(); srvId.ParameterName = "$srvId"; command.Parameters.Add(srvId);
             var chId = command.CreateParameter(); chId.ParameterName = "$chId"; command.Parameters.Add(chId);
             var bId = command.CreateParameter(); bId.ParameterName = "$bId"; command.Parameters.Add(bId);
             var pack = command.CreateParameter(); pack.ParameterName = "$pack"; command.Parameters.Add(pack);
             var size = command.CreateParameter(); size.ParameterName = "$size"; command.Parameters.Add(size);
             var title = command.CreateParameter(); title.ParameterName = "$title"; command.Parameters.Add(title);
+            var first = command.CreateParameter(); first.ParameterName = "$first"; command.Parameters.Add(first);
 
             foreach (var release in releasesToAdd)
             {
@@ -161,6 +163,7 @@ public static class IrcService
                 pack.Value = release.Pack;
                 size.Value = release.Size;
                 title.Value = release.Title;
+                first.Value = release.FirstSeen.ToBinary();
 
                 command.ExecuteNonQuery();
             }
@@ -184,12 +187,12 @@ public static class IrcService
             var bots = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
 
 
-            foreach (var line in indexer.Lines.Keys)
+            foreach (var line in indexer.Lines)
             {
                 if (releasesToAdd.Count == chunkSize)
                     InsertChunk();
 
-                var data = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var data = line.Key.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 var idx = data[0].IndexOf('!');
                 var sender = data[0][1..idx];
 
@@ -238,11 +241,13 @@ public static class IrcService
                 var unformatted = s_unformatter.Replace(release, string.Empty);
                 releasesToAdd.Add(new(unformatted)
                 {
+                    UniqueId = Guid.NewGuid(),
                     BotId = botId,
                     ChannelId = channelId,
                     Pack = pack,
                     Size = size,
                     ServerId = server.ServerId,
+                    FirstSeen = line.Value.First,
                 });
             }
         }
