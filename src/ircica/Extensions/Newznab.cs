@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using ircica.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +39,7 @@ public static class WebApplicationExtensions
 
 public static class Newznab
 {
+    static readonly Regex s_TvMatcher = new(@"\.S(?<Season>\d{2,2})E(?<Episode>\d{2,2}|\d{1,2}x\d{2,2})|\.S(?<Season>\d{2,2})", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     public static readonly HashSet<string> Searches = new() { "search", "tvsearch", "movie" };
     public static string GetString(XDocument doc) => $"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n{doc}";
     public static string CapResult()
@@ -157,17 +159,20 @@ public static class Newznab
             itemElements.Add(new XElement("link", "/505-sa-crtom.nzb"));
             itemElements.Add(new XElement("pubDate", result.FirstSeen.ToString("ddd, dd MMM yyyy HH:mm:ss K")));
             itemElements.Add(new XElement(newznabNs + "attr", result.Size, new XAttribute("name", "size")));
-            if (!string.IsNullOrWhiteSpace(sxx))
-                itemElements.Add(new XElement(newznabNs + "attr", sxx[..^1], new XAttribute("name", "season")));
-            if (!string.IsNullOrWhiteSpace(exx))
-                itemElements.Add(new XElement(newznabNs + "attr", exx[..^1], new XAttribute("name", "episode")));
             itemElements.Add(new XElement("enclosure",
-                new XAttribute("url", "/505-sa-crtom.nzb"),
+                new XAttribute("url", "/505-sa-crtom.nzb"), // TODO: probaj drugu ekstenziju
                 new XAttribute("length", result.Size),
                 new XAttribute("type", "application/x-nzb")));
 
-            var item = new XElement("item", itemElements);
-            items.Add(item);
+            var tvMatch = s_TvMatcher.Match(result.Title);
+            var releaseSeason = tvMatch.Groups["Season"].Value;
+            var releaseEpisode = tvMatch.Groups["Episode"].Value;
+            if (!string.IsNullOrWhiteSpace(releaseSeason))
+                itemElements.Add(new XElement(newznabNs + "attr", releaseSeason, new XAttribute("name", "season")));
+            if (!string.IsNullOrWhiteSpace(releaseEpisode))
+                itemElements.Add(new XElement(newznabNs + "attr", releaseEpisode, new XAttribute("name", "episode")));
+
+            items.Add(new XElement("item", itemElements));
         }
 
         var channel = new XElement("channel", response, items);

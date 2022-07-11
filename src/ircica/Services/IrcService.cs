@@ -157,6 +157,7 @@ public static class IrcService
 
             foreach (var release in releasesToAdd)
             {
+                uniqueId.Value = release.UniqueId;
                 srvId.Value = release.ServerId;
                 chId.Value = release.ChannelId;
                 bId.Value = release.BotId;
