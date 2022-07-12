@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /app
 
-COPY src/ircica/*.csproj ./
+COPY ./src/ircica/*.csproj ./
 RUN dotnet restore
 
 COPY ./src/ircica .
@@ -16,7 +16,7 @@ COPY --from=build /app/out ./
 
 ENV ASPNETCORE_URLS=http://*:50505 \
     LOCALE=en-US \
-    TZ=America/Chicago \
+    TZ=America/Chicago
 
 EXPOSE 50505
 
