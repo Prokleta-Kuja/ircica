@@ -36,8 +36,8 @@ public class IrcConnection
 
                 if (Connected && ActiveDownloads <= 2 && DownloadRequests.TryDequeue(out var request))
                 {
+                    ActiveDownloads++;
                     await request.RequestAsync(writer);
-                    ActiveDownloads = Interlocked.Increment(ref ActiveDownloads);
                 }
 
                 var line = await reader.ReadLineAsync().WaitAsync(ct).ConfigureAwait(false);
@@ -85,7 +85,7 @@ public class IrcConnection
         }
     }
 
-    internal void DecrementDownload() => ActiveDownloads = Interlocked.Decrement(ref ActiveDownloads);
+    internal void DecrementDownload() => Interlocked.Decrement(ref ActiveDownloads);
     static bool ShouldQuit(StreamWriter writer, CancellationToken cancellationToken)
     {
         if (!cancellationToken.IsCancellationRequested)

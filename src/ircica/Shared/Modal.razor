@@ -1,0 +1,91 @@
+<div class="modal fade @_showValue" tabindex="-1" style="display: @_displayValue;" aria-modal="true" role="dialog"
+    @onclick=CloseAsync>
+    <div class=@_dialogValue @onclick:stopPropagation>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@Title</h5>
+                <button type="button" class="btn-close" @onclick=CloseAsync></button>
+            </div>
+            @if (ChildContent != null)
+            {
+                <div class="modal-body">
+                    @ChildContent
+                </div>
+            }
+            @if (Footer != null)
+            {
+                <div class="modal-footer">
+                    @Footer
+                </div>
+            }
+        </div>
+    </div>
+</div>
+<div class="modal-backdrop fade @_showValue" style="display: @_displayValue;"></div>
+
+
+@code {
+    [Parameter] public string Title { get; set; } = null!;
+    [Parameter] public Size Width { get; set; } = Size.Default;
+    [Parameter] public bool Unclosable { get; set; }
+    [Parameter] public bool DisableAnimations { get; set; }
+    [Parameter] public bool Scrollable { get; set; }
+    [Parameter] public bool Centered { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+    bool _open;
+    string _displayValue = "none";
+    string _showValue = string.Empty;
+    string _dialogValue = "modal-dialog";
+    protected override void OnInitialized()
+    {
+        if (Width != Size.Default)
+            switch (Width)
+            {
+                case Size.Small: _dialogValue += " modal-sm"; break;
+                case Size.Large: _dialogValue += " modal-lg"; break;
+                case Size.ExtraLarge: _dialogValue += " modal-xl"; break;
+            }
+        if (Scrollable)
+            _dialogValue += " modal-dialog-scrollable";
+        if (Centered)
+            _dialogValue += "modal-dialog-centered";
+
+        base.OnInitialized();
+    }
+
+    public async Task ToggleOpenAsync()
+    {
+        _open = !_open;
+        if (_open)
+        {
+            _displayValue = "block";
+            if (!DisableAnimations)
+                await Task.Delay(100);
+            _showValue = "show";
+        }
+        else
+        {
+            _showValue = string.Empty;
+            if (!DisableAnimations)
+                await Task.Delay(250);
+            _displayValue = "none";
+        }
+        StateHasChanged();
+    }
+
+    async Task CloseAsync()
+    {
+        if (!Unclosable)
+            await ToggleOpenAsync();
+    }
+
+    public enum Size
+    {
+        Small,
+        Default,
+        Large,
+        ExtraLarge,
+    }
+}

@@ -9,6 +9,7 @@
             <th>File</th>
             <th>Size</th>
             <th></th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -16,11 +17,16 @@
         {
             <tr>
                 <td>@download.Bot</td>
-                <td>@download.Status</td>
+                <td @onclick=@(()=>OpenLog(download))>@download.Status</td>
                 <td>@download.Progress %</td>
                 <td>@download.Message?.FileName</td>
                 <td>@download.Message?.Size</td>
-                <td><button @onclick=@(()=>download.Stop())></button></td>
+                <td>@if (download.Progress != 100)
+                    {
+                        <button @onclick=@(()=>download.Stop())>Stop</button>
+                    }
+                </td>
+                <td><button @onclick=@(()=>RemoveDownload(download))>Remove</button></td>
             </tr>
         }
     </tbody>
@@ -33,3 +39,12 @@
         <li>@conn.Server.Name - @conn.ActiveDownloads</li>
     }
 </ul>
+
+<Modal @ref=_logModal Title=Logs Scrollable>
+    <ul class="list-group list-group-flush">
+        @foreach (var item in _log)
+        {
+            <li class="list-group-item">@item</li>
+        }
+    </ul>
+</Modal>

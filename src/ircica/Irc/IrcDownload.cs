@@ -14,6 +14,7 @@ public class IrcDownload
     public decimal Downloaded { get; private set; }
     public IrcDownloadStatus Status { get; private set; }
     public IrcDownloadMessage? Message { get; private set; }
+    public List<string> Log { get; set; } = new();
     public string Progress => Message == null ? "-" : Math.Round(Downloaded / Message.Size * 100m, 2).ToString("0.00");
     public async Task Start(IrcConnection connection, IrcDownloadMessage message)
     {
@@ -22,6 +23,7 @@ public class IrcDownload
         if (message.IsReverseDcc)
         {
             Status = IrcDownloadStatus.FailedReverseDcc;
+            Log.Add("Reverse DCC required. Currently unsupported.");
             connection.DecrementDownload();
             return;
         }
@@ -36,6 +38,7 @@ public class IrcDownload
 
             _cts = new();
             var buffer = new byte[1024 * 128];
+            Log.Add("Connected. Starting download.");
 
             while (client.Connected && await clientStream.ReadAsync(buffer, _cts.Token) is var read && read > 0)
             {
@@ -44,23 +47,33 @@ public class IrcDownload
 
                 if (Downloaded == message.Size)
                 {
+                    Log.Add("Downloaded. Starting post-processing.");
                     client.Close();
                     Status = IrcDownloadStatus.PostProcessing;
                     // TODO: Should extract
+
+                    Log.Add("Post-process complete. Moving...");
                     File.Move(file.FullName, C.Paths.CompleteFor(file.Name));
                     Status = IrcDownloadStatus.Complete;
                 }
             }
 
             if (Status != IrcDownloadStatus.Complete)
+            {
+                Log.Add("Stopped unexpectedly.");
                 Status = IrcDownloadStatus.Failed;
+            }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Log.Add($"Exception thrown. {ex.Message}");
             Status = IrcDownloadStatus.Failed;
             file.Refresh();
             if (file.Exists)
+            {
+                Log.Add("Removing failed file from disk.");
                 file.Delete();
+            }
         }
         finally
         {
