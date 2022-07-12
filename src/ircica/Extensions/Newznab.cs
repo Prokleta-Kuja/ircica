@@ -74,7 +74,14 @@ public static class Newznab
                 new XElement("subcat", new XAttribute("id", 5060), new XAttribute("name", "Sport")),
                 new XElement("subcat", new XAttribute("id", 5070), new XAttribute("name", "Anime")),
                 new XElement("subcat", new XAttribute("id", 5080), new XAttribute("name", "Documentary"))),
-            new XElement("category", new XAttribute("id", 2000), new XAttribute("name", "Movies")),
+            new XElement("category", new XAttribute("id", 2000), new XAttribute("name", "Movies"),
+                new XElement("subcat", new XAttribute("id", 2010), new XAttribute("name", "Foreign")),
+                new XElement("subcat", new XAttribute("id", 2020), new XAttribute("name", "Other")),
+                new XElement("subcat", new XAttribute("id", 2030), new XAttribute("name", "SD")),
+                new XElement("subcat", new XAttribute("id", 2040), new XAttribute("name", "HD")),
+                new XElement("subcat", new XAttribute("id", 2045), new XAttribute("name", "UHD")),
+                new XElement("subcat", new XAttribute("id", 2050), new XAttribute("name", "BluRay")),
+                new XElement("subcat", new XAttribute("id", 2060), new XAttribute("name", "3D"))),
             new XElement("category", new XAttribute("id", 8000), new XAttribute("name", "Misc"),
                 new XElement("subcat", new XAttribute("id", 8010), new XAttribute("name", "Other")))
         );
