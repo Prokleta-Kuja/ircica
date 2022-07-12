@@ -34,10 +34,11 @@ public class IrcConnection
                 if (ShouldQuit(writer, ct))
                     return;
 
-                if (Connected && ActiveDownloads <= 2 && DownloadRequests.TryDequeue(out var request))
+                if (Connected && ActiveDownloads < 2 && DownloadRequests.TryDequeue(out var request))
                 {
-                    ActiveDownloads++;
                     await request.RequestAsync(writer);
+                    ActiveDownloads++;
+                    IrcService.DownloadRequested(request);
                 }
 
                 var line = await reader.ReadLineAsync().WaitAsync(ct).ConfigureAwait(false);
@@ -84,8 +85,6 @@ public class IrcConnection
             Collecting = false;
         }
     }
-
-    internal void DecrementDownload() => Interlocked.Decrement(ref ActiveDownloads);
     static bool ShouldQuit(StreamWriter writer, CancellationToken cancellationToken)
     {
         if (!cancellationToken.IsCancellationRequested)

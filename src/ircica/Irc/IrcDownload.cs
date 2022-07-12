@@ -12,7 +12,7 @@ public class IrcDownload
     }
     public string Bot { get; }
     public decimal Downloaded { get; private set; }
-    public IrcDownloadStatus Status { get; private set; }
+    public IrcDownloadStatus Status { get; set; }
     public IrcDownloadMessage? Message { get; private set; }
     public List<string> Log { get; set; } = new();
     public string Progress => Message == null ? "-" : Math.Round(Downloaded / Message.Size * 100m, 2).ToString("0.00");
@@ -24,7 +24,7 @@ public class IrcDownload
         {
             Status = IrcDownloadStatus.FailedReverseDcc;
             Log.Add("Reverse DCC required. Currently unsupported.");
-            connection.DecrementDownload();
+            connection.ActiveDownloads--;
             return;
         }
 
@@ -38,7 +38,7 @@ public class IrcDownload
 
             _cts = new();
             var buffer = new byte[1024 * 128];
-            Log.Add("Connected. Starting download.");
+            Log.Add("Connected. Starting download...");
 
             while (client.Connected && await clientStream.ReadAsync(buffer, _cts.Token) is var read && read > 0)
             {
@@ -47,17 +47,11 @@ public class IrcDownload
 
                 if (Downloaded == message.Size)
                 {
-                    Log.Add("Downloaded. Starting post-processing.");
+                    Log.Add("Downloaded. Starting post-processing...");
                     client.Close();
                     fileStream.Flush();
                     fileStream.Close();
-
-                    Status = IrcDownloadStatus.PostProcessing;
-                    // TODO: Should extract
-
-                    Log.Add("Post-process complete. Moving...");
-                    File.Move(file.FullName, C.Paths.CompleteFor(file.Name));
-                    Status = IrcDownloadStatus.Complete;
+                    await PostProcessAsync(file.FullName);
                 }
             }
 
@@ -80,8 +74,51 @@ public class IrcDownload
         }
         finally
         {
-            connection.DecrementDownload();
+            connection.ActiveDownloads--;
         }
+    }
+    async Task PostProcessAsync(string downloadedFile)
+    {
+        Status = IrcDownloadStatus.PostProcessing;
+        var psi = new ProcessStartInfo("tar", "xvf folder.tar -C test");
+        psi.WorkingDirectory = C.Paths.Incomplete;
+        psi.RedirectStandardError = psi.RedirectStandardOutput = true;
+        psi.UseShellExecute = false;
+
+
+        switch (Path.GetExtension(downloadedFile).ToLower())
+        {
+            case ".tar":
+                psi.FileName = "tar";
+                psi.Arguments = $"xvf {downloadedFile} -C {C.Paths.Complete}";
+                break;
+            default:
+                Log.Add("Moving...");
+                File.Move(downloadedFile, C.Paths.CompleteFor(Path.GetFileName(downloadedFile)));
+                Status = IrcDownloadStatus.Complete;
+                return;
+        }
+
+        Log.Add("Extracting...");
+        var process = Process.Start(psi);
+        if (process != null)
+        {
+            await process.WaitForExitAsync();
+            if (process.ExitCode == 0)
+            {
+                Status = IrcDownloadStatus.Complete;
+                Log.Add("Deleting original files...");
+                File.Delete(downloadedFile);
+            }
+            else
+            {
+                Status = IrcDownloadStatus.Failed;
+                while (!process.StandardError.EndOfStream)
+                    Log.Add(process.StandardError.ReadLine() ?? string.Empty);
+            }
+        }
+        else
+            Status = IrcDownloadStatus.Failed;
     }
     public void Stop()
     {
@@ -91,6 +128,7 @@ public class IrcDownload
 
 public enum IrcDownloadStatus
 {
+    Waiting,
     Requested,
     Downloading,
     PostProcessing,

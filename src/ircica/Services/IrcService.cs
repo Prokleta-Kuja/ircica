@@ -71,6 +71,12 @@ public static class IrcService
         connection.DownloadRequests.Enqueue(request);
         Downloads.Add(new IrcDownload(request.Bot));
     }
+    public static void DownloadRequested(IrcDownloadRequest request)
+    {
+        var download = Downloads.FirstOrDefault(d => d.Status == IrcDownloadStatus.Waiting && d.Bot.Equals(request.Bot, StringComparison.InvariantCultureIgnoreCase));
+        if (download != null)
+            download.Status = IrcDownloadStatus.Requested;
+    }
     public static void Download(IrcConnection connection, IrcDownloadMessage message)
     {
         var download = Downloads.FirstOrDefault(d => d.Status == IrcDownloadStatus.Requested && d.Bot.Equals(message.Sender, StringComparison.InvariantCultureIgnoreCase));
