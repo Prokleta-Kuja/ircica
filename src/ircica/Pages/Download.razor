@@ -21,7 +21,7 @@
                 <td>@download.Progress %</td>
                 <td>@download.Message?.FileName</td>
                 <td>@download.Message?.Size</td>
-                <td>@if (download.Progress != 100)
+                <td>@if (download.Status == IrcDownloadStatus.Downloading)
                     {
                         <button @onclick=@(()=>download.Stop())>Stop</button>
                     }

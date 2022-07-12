@@ -5,7 +5,6 @@ COPY ./src/ircica/*.csproj ./
 RUN dotnet restore
 
 COPY ./src/ircica .
-WORKDIR /app
 
 ARG Version=0.0.0
 RUN dotnet publish /p:Version=$Version -c Release -o out --no-restore
