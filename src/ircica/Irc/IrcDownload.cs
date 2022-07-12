@@ -15,13 +15,14 @@ public class IrcDownload
     public IrcDownloadStatus Status { get; private set; }
     public IrcDownloadMessage? Message { get; private set; }
     public string Progress => Message == null ? "-" : Math.Round(Downloaded / Message.Size * 100m, 2).ToString("0.00");
-    public async Task Start(IrcDownloadMessage message)
+    public async Task Start(IrcConnection connection, IrcDownloadMessage message)
     {
         Message = message;
 
         if (message.IsReverseDcc)
         {
             Status = IrcDownloadStatus.FailedReverseDcc;
+            connection.DecrementDownload();
             return;
         }
 
@@ -36,8 +37,6 @@ public class IrcDownload
             _cts = new();
             var buffer = new byte[1024 * 128];
 
-            var sw = new Stopwatch();
-            sw.Start();
             while (client.Connected && await clientStream.ReadAsync(buffer, _cts.Token) is var read && read > 0)
             {
                 Downloaded += read;
@@ -46,14 +45,15 @@ public class IrcDownload
                 if (Downloaded == message.Size)
                 {
                     client.Close();
+                    Status = IrcDownloadStatus.PostProcessing;
+                    // TODO: Should extract
+                    File.Move(file.FullName, C.Paths.CompleteFor(file.Name));
                     Status = IrcDownloadStatus.Complete;
                 }
             }
 
             if (Status != IrcDownloadStatus.Complete)
                 Status = IrcDownloadStatus.Failed;
-
-            sw.Stop();
         }
         catch (Exception)
         {
@@ -61,6 +61,10 @@ public class IrcDownload
             file.Refresh();
             if (file.Exists)
                 file.Delete();
+        }
+        finally
+        {
+            connection.DecrementDownload();
         }
     }
     public void Stop()
@@ -73,6 +77,7 @@ public enum IrcDownloadStatus
 {
     Requested,
     Downloading,
+    PostProcessing,
     Complete,
     Failed,
     FailedReverseDcc,

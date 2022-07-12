@@ -10,21 +10,22 @@ public static class C
     public static Settings Settings { get; set; } = new();
     public static readonly TimeZoneInfo DefaultTZ = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zagreb");
     public static readonly CultureInfo DefaultLocale = CultureInfo.GetCultureInfo("en-US");
-    public static string GetHumanFileSize(FileInfo file)
+    static readonly string[] s_sizes = { "B", "KB", "MB", "GB", "TB" };
+    public static string GetHumanBytesSize(double bytes)
     {
-        var sizes = new string[] { "B", "KB", "MB", "GB", "TB" };
-        double len = file.Length;
-        var order = 0;
-        while (len >= 1024 && order < sizes.Length - 1)
+        int order = 0;
+        while (bytes >= 1024 && order < s_sizes.Length - 1)
         {
             order++;
-            len = len / 1024;
+            bytes /= 1024;
         }
 
         // Adjust the format string to your preferences. For example "{0:0.#}{1}" would
         // show a single decimal place, and no space.
-        return String.Format("{0:0.##} {1}", len, sizes[order]);
+        return $"{bytes:0.##} {s_sizes[order]}";
     }
+    public static string GetHumanFileSize(FileInfo file) => GetHumanBytesSize(file.Length);
+    public static string GetHumanFileSize(string path) => GetHumanFileSize(new FileInfo(path));
     public static class Env
     {
         public static string Locale => Environment.GetEnvironmentVariable("LOCALE") ?? "en-US";

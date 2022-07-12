@@ -36,6 +36,7 @@ public partial class Search
                 .Include(r => r.Channel)
                 .Include(r => r.Server)
                 .Include(r => r.Bot)
+                .Take(128)
                 .AsNoTracking()
                 .ToListAsync();
         }
@@ -52,19 +53,5 @@ public partial class Search
                                              release.Bot!.Name,
                                              release.Pack);
         IrcService.RequestDownload(request);
-    }
-    static readonly string[] s_sizes = { "B", "KB", "MB", "GB", "TB" };
-    static string GetHumanSize(double bytes)
-    {
-        int order = 0;
-        while (bytes >= 1024 && order < s_sizes.Length - 1)
-        {
-            order++;
-            bytes = bytes / 1024;
-        }
-
-        // Adjust the format string to your preferences. For example "{0:0.#}{1}" would
-        // show a single decimal place, and no space.
-        return $"{bytes:0.##} {s_sizes[order]}";
     }
 }

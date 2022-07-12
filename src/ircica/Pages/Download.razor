@@ -8,6 +8,7 @@
             <th>%</th>
             <th>File</th>
             <th>Size</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -19,7 +20,16 @@
                 <td>@download.Progress %</td>
                 <td>@download.Message?.FileName</td>
                 <td>@download.Message?.Size</td>
+                <td><button @onclick=@(()=>download.Stop())></button></td>
             </tr>
         }
     </tbody>
 </table>
+
+<h6>Active downloads</h6>
+<ul>
+    @foreach (var conn in IrcService.Connections)
+    {
+        <li>@conn.Server.Name - @conn.ActiveDownloads</li>
+    }
+</ul>

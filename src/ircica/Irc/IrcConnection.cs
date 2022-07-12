@@ -11,6 +11,7 @@ public class IrcConnection
     public IrcServer Server { get; }
     public bool Connected { get; private set; }
     public bool Collecting { get; set; }
+    public int ActiveDownloads;
     public List<IrcDirectMessage> Messages { get; } = new();
     public Dictionary<string, (DateTime First, DateTime Last)> Lines { get; } = new();
     public Queue<IrcDownloadRequest> DownloadRequests { get; set; } = new();
@@ -33,8 +34,11 @@ public class IrcConnection
                 if (ShouldQuit(writer, ct))
                     return;
 
-                if (Connected && DownloadRequests.TryDequeue(out var request))
+                if (Connected && ActiveDownloads <= 2 && DownloadRequests.TryDequeue(out var request))
+                {
                     await request.RequestAsync(writer);
+                    ActiveDownloads = Interlocked.Increment(ref ActiveDownloads);
+                }
 
                 var line = await reader.ReadLineAsync().WaitAsync(ct).ConfigureAwait(false);
                 if (string.IsNullOrWhiteSpace(line))
@@ -55,7 +59,7 @@ public class IrcConnection
                         break;
                     case IrcDownloadMessage downloadMessage:
                         Messages.Add(downloadMessage);
-                        IrcService.Download(downloadMessage);
+                        IrcService.Download(this, downloadMessage);
                         break;
                     case IrcDirectMessage direct:
                         Messages.Add(direct);
@@ -80,6 +84,8 @@ public class IrcConnection
             Collecting = false;
         }
     }
+
+    internal void DecrementDownload() => ActiveDownloads = Interlocked.Decrement(ref ActiveDownloads);
     static bool ShouldQuit(StreamWriter writer, CancellationToken cancellationToken)
     {
         if (!cancellationToken.IsCancellationRequested)

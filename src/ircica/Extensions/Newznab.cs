@@ -25,12 +25,10 @@ public static class WebApplicationExtensions
                 return Results.NotFound();
 
             var downloadBytes = Newznab.GetNzbBytes(release);
-            return Results.File(downloadBytes, "application/x-nzb", $"{release.Title}.irc");
+            return Results.File(downloadBytes, "application/x-nzb", $"{release.Title}.nzb");
         });
         app.MapGet(C.Routes.NewznabApi, async (HttpContext ctx) =>
         {
-            await Task.CompletedTask;
-            //http://192.168.123.3:5000/newznab/api
             if (!ctx.Request.Query.TryGetValue("T", out var t))
                 return Results.BadRequest();
 
@@ -54,33 +52,16 @@ public static class Newznab
     public static string GetString(XDocument doc) => $"<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n{doc}";
     public static string CapResult()
     {
-        var server = new XElement("server");
-        server.SetAttributeValue("version", "1.0");
-        server.SetAttributeValue("title", "ircica");
-
-        var limits = new XElement("limits");
-        limits.SetAttributeValue("max", 512);
-        limits.SetAttributeValue("default", 256);
-
-        var registration = new XElement("registration");
-        registration.SetAttributeValue("available", "no");
-        registration.SetAttributeValue("open", "no");
-
-        var search = new XElement("search");
-        search.SetAttributeValue("available", "yes");
-        search.SetAttributeValue("supportedParams", "q");
-        var tvSearch = new XElement("tv-search");
-        tvSearch.SetAttributeValue("available", "yes");
-        tvSearch.SetAttributeValue("supportedParams", "q,season,ep"); // supportedParams="q,rid,tvdbid,tvmazeid,season,ep"
-        var movieSearch = new XElement("movie-search");
-        movieSearch.SetAttributeValue("available", "yes");
-        movieSearch.SetAttributeValue("supportedParams", "q"); // supportedParams="q,imdbid,genre"
+        var server = new XElement("server", new XAttribute("version", "1.0"), new XAttribute("title", "ircica"));
+        var limits = new XElement("limits", new XAttribute("max", 512), new XAttribute("default", 256));
+        var registration = new XElement("registration", new XAttribute("available", "no"), new XAttribute("open", "no"));
+        var search = new XElement("search", new XAttribute("available", "yes"), new XAttribute("supportedParams", "q"));
+        var tvSearch = new XElement("tv-search", new XAttribute("available", "yes"), new XAttribute("supportedParams", "q,season,ep"));
+        var movieSearch = new XElement("movie-search", new XAttribute("available", "yes"), new XAttribute("supportedParams", "q"));
         var searching = new XElement("searching", search, tvSearch, movieSearch);
 
-        var group = new XElement("group");
-        group.SetAttributeValue("id", 999);
-        group.SetAttributeValue("name", "irc");
-        group.SetAttributeValue("lastupdate", DateTime.UtcNow); // TODO: change this
+        var group = new XElement("group", new XAttribute("id", 999), new XAttribute("name", "irc"));
+        group.SetAttributeValue("lastupdate", DateTime.UtcNow); // An announcement is made almost every second
         var groups = new XElement("groups", group);
 
         var categories = new XElement("categories",

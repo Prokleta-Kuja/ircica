@@ -7,7 +7,6 @@ namespace ircica;
 
 public static class IrcService
 {
-    static readonly PeriodicTimer _cleanLogsTimer = new(TimeSpan.FromHours(1));
     static CancellationTokenSource? _cts;
     static readonly Regex s_unformatter = new(@"[\u0002\u000f\u0011\u001e\u0016\u001d\u001f]|\u0003(\d{2}(,\d{2})?)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     public static List<IrcConnection> Connections { get; private set; } = new();
@@ -24,8 +23,6 @@ public static class IrcService
 
         if (C.Settings.AutoConnect)
             ConnectAll();
-
-        RunClenLogsTimer();
     }
     public static void ConnectAll()
     {
@@ -59,28 +56,6 @@ public static class IrcService
         foreach (var connection in Connections)
             connection.Collecting = Collecting;
     }
-    static async void RunClenLogsTimer()
-    {
-        while (await _cleanLogsTimer.WaitForNextTickAsync())
-            CleanLogs();
-    }
-    public static void CleanLogs()
-    {
-        var wasCollecting = Collecting;
-        if (wasCollecting)
-            StopCollecting();
-
-        var staleBefore = DateTime.UtcNow - TimeSpan.FromHours(24);
-        foreach (var indexer in Connections)
-        {
-            var stale = indexer.Lines.Where(l => l.Value.Last < staleBefore).Select(l => l.Key);
-            foreach (var line in stale)
-                indexer.Lines.Remove(line);
-        }
-
-        if (wasCollecting)
-            StartCollecting();
-    }
     public static void RequestDownload(IrcDownloadRequest request)
     {
         var connection = Connections.SingleOrDefault(c => c.Server.Url == request.Server);
@@ -93,11 +68,11 @@ public static class IrcService
         connection.DownloadRequests.Enqueue(request);
         Downloads.Add(new IrcDownload(request.Bot));
     }
-    public static void Download(IrcDownloadMessage message)
+    public static void Download(IrcConnection connection, IrcDownloadMessage message)
     {
         var download = Downloads.FirstOrDefault(d => d.Status == IrcDownloadStatus.Requested && d.Bot.Equals(message.Sender, StringComparison.InvariantCultureIgnoreCase));
         if (download != null)
-            _ = download.Start(message);
+            _ = download.Start(connection, message);
         else
             Console.WriteLine($"Unsolicited download from {message.Sender} {message.Message}");
     }
@@ -106,6 +81,15 @@ public static class IrcService
         var wasCollecting = Collecting;
         if (wasCollecting)
             StopCollecting();
+
+        var start = DateTime.UtcNow;
+        var staleBefore = DateTime.UtcNow - TimeSpan.FromHours(24);
+        foreach (var indexer in Connections)
+        {
+            var stale = indexer.Lines.Where(l => l.Value.Last < staleBefore).Select(l => l.Key);
+            foreach (var line in stale)
+                indexer.Lines.Remove(line);
+        }
 
         File.Delete(C.Paths.InactiveDbFile);
         foreach (var tmp in Directory.EnumerateFiles(C.Paths.Config, "*.tmp"))
@@ -128,14 +112,16 @@ public static class IrcService
             File.Delete(C.Paths.ActiveDbFile);
         File.Move(tempFile, C.Paths.ActiveDbFile);
 
+        Console.WriteLine($"Index ({C.GetHumanFileSize(C.Paths.ActiveDbFile)}) built in {DateTime.UtcNow - start}");
+
         if (wasCollecting)
             StartCollecting();
     }
     static void FillDb(AppDbContext db)
     {
-        var start = DateTime.UtcNow;
         var chunkSize = 1000;
         var releasesToAdd = new List<Release>(chunkSize);
+
         void InsertChunk()
         {
             if (releasesToAdd == null || !releasesToAdd.Any())
@@ -186,7 +172,6 @@ public static class IrcService
 
             var channels = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
             var bots = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
-
 
             foreach (var line in indexer.Lines)
             {
@@ -258,7 +243,5 @@ public static class IrcService
          CREATE VIRTUAL TABLE FTSReleases USING FTS5(Title, ReleaseId UNINDEXED, content=Releases, content_rowid=ReleaseId, tokenize = ""unicode61 separators '-_'"");
          INSERT INTO FTSReleases (Title, ReleaseId) SELECT Title, ReleaseId FROM Releases;
         ");
-
-        Console.WriteLine($"Inserted in {DateTime.UtcNow - start}");
     }
 }

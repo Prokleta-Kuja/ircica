@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Xml.Linq;
 
 namespace ircica;
 
@@ -17,10 +18,16 @@ public static class BlackholeService
     {
         try
         {
-            await Task.Delay(TimeSpan.FromSeconds(2));
-            var text = File.ReadAllText(e.FullPath);
-            var request = JsonSerializer.Deserialize<IrcDownloadRequest>(text);
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            var doc = XDocument.Load(e.FullPath, LoadOptions.None);
+            var file = doc.Root?.Element("file");
+            if (file == null)
+                throw new Exception("Couldn't parse XML from irc file");
 
+            var request = JsonSerializer.Deserialize<IrcDownloadRequest>(file.Value);
+            IrcService.RequestDownload(request!);
+
+            File.Delete(e.FullPath);
         }
         catch (Exception ex)
         {
