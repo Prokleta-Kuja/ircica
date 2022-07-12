@@ -38,6 +38,9 @@ public static class IrcService
             _ = connection.Start(_cts.Token);
 
         Connected = true;
+
+        if (C.Settings.AutoCollect)
+            StartCollecting();
     }
     public static void DisconnectAll()
     {

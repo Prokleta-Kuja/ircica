@@ -49,6 +49,9 @@ public class IrcDownload
                 {
                     Log.Add("Downloaded. Starting post-processing.");
                     client.Close();
+                    fileStream.Flush();
+                    fileStream.Close();
+
                     Status = IrcDownloadStatus.PostProcessing;
                     // TODO: Should extract
 
