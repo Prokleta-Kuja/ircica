@@ -1,0 +1,9 @@
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+**/config
+**/blackhole
+**/incomplete
+**/complete
