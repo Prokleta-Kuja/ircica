@@ -18,4 +18,6 @@ ENV ASPNETCORE_URLS=http://*:50505 \
     LOCALE=en-US \
     TZ=America/Chicago \
 
+EXPOSE 50505
+
 ENTRYPOINT ["dotnet", "ircica.dll"]
