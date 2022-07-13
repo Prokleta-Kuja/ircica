@@ -6,12 +6,17 @@ namespace ircica;
 public class IrcDownload
 {
     CancellationTokenSource? _cts;
-    public IrcDownload(string bot)
+    public IrcDownload(Guid id, string bot, IrcConnection connection)
     {
+        Id = id;
         Bot = bot;
+        Connection = connection;
     }
+    public Guid Id { get; }
     public string Bot { get; }
+    public IrcConnection Connection { get; set; }
     public decimal Downloaded { get; private set; }
+    public DateTime? RequestedAt { get; set; }
     public IrcDownloadStatus Status { get; set; }
     public IrcDownloadMessage? Message { get; private set; }
     public List<string> Log { get; set; } = new();
@@ -19,12 +24,13 @@ public class IrcDownload
     public async Task Start(IrcConnection connection, IrcDownloadMessage message)
     {
         Message = message;
+        RequestedAt = null;
 
         if (message.IsReverseDcc)
         {
             Status = IrcDownloadStatus.FailedReverseDcc;
             Log.Add("Reverse DCC required. Currently unsupported.");
-            connection.ActiveDownloads--;
+            connection.ActiveDownloads.Remove(Id);
             return;
         }
 
@@ -74,7 +80,7 @@ public class IrcDownload
         }
         finally
         {
-            connection.ActiveDownloads--;
+            connection.ActiveDownloads.Remove(Id);
         }
     }
     async Task PostProcessAsync(string downloadedFile)
@@ -123,6 +129,7 @@ public class IrcDownload
     public void Stop()
     {
         _cts?.Cancel();
+        Connection.ActiveDownloads.Remove(Id);
     }
 }
 
@@ -133,6 +140,7 @@ public enum IrcDownloadStatus
     Downloading,
     PostProcessing,
     Complete,
+    Expired,
     Failed,
     FailedReverseDcc,
 }

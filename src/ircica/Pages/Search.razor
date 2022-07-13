@@ -3,7 +3,7 @@
 <PageTitle>Search</PageTitle>
 
 <form @onsubmit=SearchAsync>
-    <input type="search" @bind=_term>
+    <input @ref=_searchInput type="search" @bind=_term>
     <input type="submit" value="Search">
 </form>
 @_message

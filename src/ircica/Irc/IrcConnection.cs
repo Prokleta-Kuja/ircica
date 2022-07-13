@@ -4,6 +4,7 @@ namespace ircica;
 
 public class IrcConnection
 {
+    const int MAX_DOWNLOADS = 2;
     public IrcConnection(IrcServer server)
     {
         Server = server;
@@ -11,7 +12,7 @@ public class IrcConnection
     public IrcServer Server { get; }
     public bool Connected { get; private set; }
     public bool Collecting { get; set; }
-    public int ActiveDownloads;
+    public Dictionary<Guid, DateTime> ActiveDownloads { get; set; } = new(MAX_DOWNLOADS);
     public List<IrcDirectMessage> Messages { get; } = new();
     public Dictionary<string, (DateTime First, DateTime Last)> Lines { get; } = new();
     public Queue<IrcDownloadRequest> DownloadRequests { get; set; } = new();
@@ -34,10 +35,10 @@ public class IrcConnection
                 if (ShouldQuit(writer, ct))
                     return;
 
-                if (Connected && ActiveDownloads < 2 && DownloadRequests.TryDequeue(out var request))
+                if (Connected && ActiveDownloads.Count < MAX_DOWNLOADS && DownloadRequests.TryDequeue(out var request))
                 {
                     await request.RequestAsync(writer);
-                    ActiveDownloads++;
+                    ActiveDownloads.Add(request.Id, DateTime.UtcNow);
                     IrcService.DownloadRequested(request);
                 }
 

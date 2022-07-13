@@ -3,7 +3,8 @@
 
 <PageTitle>Index</PageTitle>
 
-<h1>Total usage @((GC.GetTotalMemory(false) /1024m/1024m).ToString("#,##0.00 MB"))</h1>
+<h6>Current usage @((GC.GetTotalMemory(false) /1024m/1024m).ToString("#,##0.00 MB"))</h6>
+<h6>@IrcService.LastIndexBuild</h6>
 
 <table class="table">
     <thead>
@@ -23,7 +24,7 @@
                 <td>@indexer.Connected</td>
                 <td>@indexer.Collecting</td>
                 <td>@indexer.Lines.Count.ToString("#,##0")</td>
-                <td>@indexer.Messages.Count.ToString("#,##0")</td>
+                <td @onclick=@(()=>OpenLog(indexer))>@indexer.Messages.Count.ToString("#,##0")</td>
             </tr>
         }
         <tr>
@@ -43,7 +44,18 @@
 <button @onclick=IrcService.StartCollecting>Start collecting</button>
 <button @onclick=IrcService.BuildIndex>Build index</button>
 
+<Modal @ref=_logModal Title=Logs Scrollable>
+    <ul class="list-group list-group-flush">
+        @foreach (var item in _log)
+        {
+            <li class="list-group-item">@item</li>
+        }
+    </ul>
+</Modal>
+
 @code {
+    Modal _logModal = null!;
+    List<string> _log = new(0);
     readonly PeriodicTimer _periodicTimer = new(TimeSpan.FromSeconds(2));
     protected override void OnInitialized()
     {
@@ -54,6 +66,11 @@
     {
         while (await _periodicTimer.WaitForNextTickAsync())
             StateHasChanged();
+    }
+    async Task OpenLog(IrcConnection connection)
+    {
+        _log = connection.Messages.Select(m => $"{m.Sender}: {m.Message}").ToList();
+        await _logModal.ToggleOpenAsync();
     }
 
     public void Dispose()

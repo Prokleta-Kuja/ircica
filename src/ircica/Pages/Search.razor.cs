@@ -1,4 +1,5 @@
 using ircica.Entities;
+using Microsoft.AspNetCore.Components;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,9 +7,16 @@ namespace ircica.Pages;
 
 public partial class Search
 {
-    string _term = "phantom open";// string.Empty;
+    ElementReference _searchInput;
+    string _term = "term AND (x265 OR h265)";// string.Empty;
     string _message = string.Empty;
     List<Release> _items = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await _searchInput.FocusAsync();
+    }
 
     async Task SearchAsync()
     {

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ircica;
 
 public class IrcDownloadRequest
@@ -15,6 +17,8 @@ public class IrcDownloadRequest
         Bot = bot;
         Pack = pack;
     }
+    [JsonIgnore]
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string Server { get; set; }
     public string Channel { get; }
     public string Bot { get; }

@@ -13,6 +13,7 @@ public static class IrcService
     public static List<IrcDownload> Downloads { get; private set; } = new();
     public static bool Connected { get; private set; }
     public static bool Collecting { get; private set; }
+    public static DateTime? LastIndexBuild { get; private set; }
     public static void LoadConnections()
     {
         foreach (var server in C.Settings.Servers)
@@ -69,13 +70,16 @@ public static class IrcService
         }
 
         connection.DownloadRequests.Enqueue(request);
-        Downloads.Add(new IrcDownload(request.Bot));
+        Downloads.Add(new IrcDownload(request.Id, request.Bot, connection));
     }
     public static void DownloadRequested(IrcDownloadRequest request)
     {
-        var download = Downloads.FirstOrDefault(d => d.Status == IrcDownloadStatus.Waiting && d.Bot.Equals(request.Bot, StringComparison.InvariantCultureIgnoreCase));
+        var download = Downloads.FirstOrDefault(d => d.Id == request.Id);
         if (download != null)
+        {
             download.Status = IrcDownloadStatus.Requested;
+            download.RequestedAt = DateTime.UtcNow;
+        }
     }
     public static void Download(IrcConnection connection, IrcDownloadMessage message)
     {
@@ -85,6 +89,15 @@ public static class IrcService
         else
             Console.WriteLine($"Unsolicited download from {message.Sender} {message.Message}");
     }
+    public static void ExpireDownloads(DateTime before)
+    {
+        foreach (var download in Downloads)
+            if (download.RequestedAt.HasValue && download.RequestedAt.Value < before)
+            {
+                download.Status = IrcDownloadStatus.Expired;
+                download.Stop();
+            }
+    }
     public static void BuildIndex()
     {
         var wasCollecting = Collecting;
@@ -92,7 +105,7 @@ public static class IrcService
             StopCollecting();
 
         var start = DateTime.UtcNow;
-        var staleBefore = DateTime.UtcNow - TimeSpan.FromHours(24);
+        var staleBefore = DateTime.UtcNow - TimeSpan.FromHours(C.Settings.RemoveAnnouncmentsNotSeenHours);
         foreach (var indexer in Connections)
         {
             var stale = indexer.Lines.Where(l => l.Value.Last < staleBefore).Select(l => l.Key);
@@ -121,6 +134,7 @@ public static class IrcService
             File.Delete(C.Paths.ActiveDbFile);
         File.Move(tempFile, C.Paths.ActiveDbFile);
 
+        LastIndexBuild = DateTime.UtcNow;
         Console.WriteLine($"Index ({C.GetHumanFileSize(C.Paths.ActiveDbFile)}) built in {DateTime.UtcNow - start}");
 
         if (wasCollecting)
@@ -168,12 +182,12 @@ public static class IrcService
             releasesToAdd.Clear();
         };
 
-        foreach (var indexer in Connections)
+        foreach (var connection in Connections)
         {
-            var server = new Server(indexer.Server.Name, indexer.Server.Url)
+            var server = new Server(connection.Server.Name, connection.Server.Url)
             {
-                Port = indexer.Server.Port,
-                SSL = indexer.Server.SSL,
+                Port = connection.Server.Port,
+                SSL = connection.Server.SSL,
             };
 
             db.Servers.Add(server);
@@ -181,69 +195,83 @@ public static class IrcService
 
             var channels = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
             var bots = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
+            var failedLines = new Dictionary<string, string>();
 
-            foreach (var line in indexer.Lines)
+            foreach (var line in connection.Lines)
             {
                 if (releasesToAdd.Count == chunkSize)
                     InsertChunk();
 
-                var data = line.Key.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                var idx = data[0].IndexOf('!');
-                var sender = data[0][1..idx];
-
-                var onChannel = data[2].TrimStart('#');
-                var remainder = string.Join(string.Empty, data.Skip(3));
-
-                var packStr = Regex.Match(remainder, @"\u0002(.+?)\u0002").Groups[1].Value;
-                var sizeStr = Regex.Match(remainder, @"\[(.+?)\]").Groups[1].Value;
-                var startIdx = remainder.IndexOf(']');
-                var release = remainder[(startIdx + 1)..];
-
-                var pack = -1;
-                var size = -1d;
-                if (int.TryParse(packStr.TrimStart('#'), out var parsedPack))
-                    pack = parsedPack;
-                if (double.TryParse(sizeStr[..^1], out var parsedSize))
+                try
                 {
-                    size = sizeStr.Last() switch
+                    var data = line.Key.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    var idx = data[0].IndexOf('!');
+                    var sender = data[0][1..idx];
+
+                    var onChannel = data[2].TrimStart('#');
+                    var remainder = string.Join(string.Empty, data.Skip(3));
+
+                    var packStr = Regex.Match(remainder, @"\u0002(.+?)\u0002").Groups[1].Value;
+                    var sizeStr = Regex.Match(remainder, @"\[(.+?)\]").Groups[1].Value;
+                    var startIdx = remainder.IndexOf(']');
+                    var release = remainder[(startIdx + 1)..];
+
+                    var pack = -1;
+                    var size = -1d;
+                    if (int.TryParse(packStr.TrimStart('#'), out var parsedPack))
+                        pack = parsedPack;
+                    if (double.TryParse(sizeStr[..^1], out var parsedSize))
                     {
-                        'M' or 'm' => parsedSize * 1024 * 1024,
-                        'G' or 'g' => parsedSize * 1024 * 1024 * 1024,
-                        _ => parsedSize * 1024,
-                    };
+                        size = sizeStr.Last() switch
+                        {
+                            'M' or 'm' => parsedSize * 1024 * 1024,
+                            'G' or 'g' => parsedSize * 1024 * 1024 * 1024,
+                            _ => parsedSize * 1024,
+                        };
+                    }
+
+                    if (!channels.TryGetValue(onChannel, out var channelId))
+                    {
+                        var channel = new Channel(onChannel);
+                        db.Channels.Add(channel);
+                        db.SaveChanges();
+
+                        channelId = channel.ChannelId;
+                        channels.Add(channel.Name, channel.ChannelId);
+                    }
+
+                    if (!bots.TryGetValue(sender, out var botId))
+                    {
+                        var bot = new Bot(sender);
+                        db.Bots.Add(bot);
+                        db.SaveChanges();
+
+                        botId = bot.BotId;
+                        bots.Add(bot.Name, bot.BotId);
+                    }
+
+                    var unformatted = s_unformatter.Replace(release, string.Empty);
+                    releasesToAdd.Add(new(unformatted)
+                    {
+                        UniqueId = Guid.NewGuid(),
+                        BotId = botId,
+                        ChannelId = channelId,
+                        Pack = pack,
+                        Size = size,
+                        ServerId = server.ServerId,
+                        FirstSeen = line.Value.First,
+                    });
                 }
-
-                if (!channels.TryGetValue(onChannel, out var channelId))
+                catch (Exception ex)
                 {
-                    var channel = new Channel(onChannel);
-                    db.Channels.Add(channel);
-                    db.SaveChanges();
-
-                    channelId = channel.ChannelId;
-                    channels.Add(channel.Name, channel.ChannelId);
+                    failedLines.TryAdd(line.Key, ex.Message);
                 }
+            }
 
-                if (!bots.TryGetValue(sender, out var botId))
-                {
-                    var bot = new Bot(sender);
-                    db.Bots.Add(bot);
-                    db.SaveChanges();
-
-                    botId = bot.BotId;
-                    bots.Add(bot.Name, bot.BotId);
-                }
-
-                var unformatted = s_unformatter.Replace(release, string.Empty);
-                releasesToAdd.Add(new(unformatted)
-                {
-                    UniqueId = Guid.NewGuid(),
-                    BotId = botId,
-                    ChannelId = channelId,
-                    Pack = pack,
-                    Size = size,
-                    ServerId = server.ServerId,
-                    FirstSeen = line.Value.First,
-                });
+            foreach (var line in failedLines)
+            {
+                connection.Lines.Remove(line.Key);
+                Console.WriteLine($"Failed to index line {line.Key}, {line.Value}");
             }
         }
         InsertChunk();

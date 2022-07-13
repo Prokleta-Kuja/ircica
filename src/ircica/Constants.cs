@@ -74,6 +74,9 @@ public class Settings
     public string NickName { get; set; } = "ircica";
     public bool AutoConnect { get; set; } = true;
     public bool AutoCollect { get; set; } = true;
+    public int BuildIndexEveryHours { get; set; } = 3;
+    public int ExpireDownloadsOlderThanMinutes { get; set; } = 15;
+    public int RemoveAnnouncmentsNotSeenHours { get; set; } = 6;
     public List<IrcServer> Servers { get; set; } = new() { new() { Name = "Something", Url = "irc.something.net", Channels = new() { "A", "B" }, Port = 6667 } };
     public bool Validate(out string? message)
     {
@@ -92,6 +95,24 @@ public class Settings
         if (string.IsNullOrWhiteSpace(NickName))
         {
             message = $"{nameof(NickName)} cannot be empty";
+            return false;
+        }
+
+        if (BuildIndexEveryHours <= 0)
+        {
+            message = $"{nameof(BuildIndexEveryHours)} must be larger than 0";
+            return false;
+        }
+
+        if (ExpireDownloadsOlderThanMinutes <= 0)
+        {
+            message = $"{nameof(ExpireDownloadsOlderThanMinutes)} must be larger than 0";
+            return false;
+        }
+
+        if (RemoveAnnouncmentsNotSeenHours <= 0)
+        {
+            message = $"{nameof(RemoveAnnouncmentsNotSeenHours)} must be larger than 0";
             return false;
         }
 

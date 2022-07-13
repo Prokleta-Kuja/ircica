@@ -36,7 +36,7 @@
 <ul>
     @foreach (var conn in IrcService.Connections)
     {
-        <li>@conn.Server.Name - @conn.ActiveDownloads</li>
+        <li>@conn.Server.Name - @conn.ActiveDownloads.Count</li>
     }
 </ul>
 

@@ -10,6 +10,7 @@ public class Program
     public static void Main(string[] args)
     {
         InitializeDirectories();
+        TasksService.Start();
         using var fileWatcher = BlackholeService.GetWatcher();
         fileWatcher.Enable();
 
