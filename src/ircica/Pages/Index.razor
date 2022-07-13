@@ -1,5 +1,6 @@
 ﻿@page "/"
 @implements IDisposable
+@using ircica.Shared
 
 <PageTitle>Index</PageTitle>
 
@@ -44,7 +45,7 @@
 <button @onclick=IrcService.StartCollecting>Start collecting</button>
 <button @onclick=IrcService.BuildIndex>Build index</button>
 
-<Modal @ref=_logModal Title=Logs Scrollable>
+<Modal @ref=_logModal Title=Logs Scrollable Width=Modal.Size.Large>
     <ul class="list-group list-group-flush">
         @foreach (var item in _log)
         {

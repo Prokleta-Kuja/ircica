@@ -156,7 +156,7 @@ public static class Newznab
             itemElements.Add(new XElement("guid", result.UniqueId, new XAttribute("isPermaLink", "true")));
             itemElements.Add(new XElement("link", download));
             itemElements.Add(new XElement("pubDate", result.FirstSeen.ToString("ddd, dd MMM yyyy HH:mm:ss K")));
-            itemElements.Add(new XElement(newznabNs + "attr", result.Size, new XAttribute("name", "size")));
+            itemElements.Add(new XElement(newznabNs + "attr", result.Size.ToString("00"), new XAttribute("name", "size")));
             itemElements.Add(new XElement("enclosure",
                 new XAttribute("url", download),
                 new XAttribute("length", result.Size),
