@@ -159,7 +159,7 @@ public static class Newznab
             itemElements.Add(new XElement(newznabNs + "attr", result.Size.ToString("00"), new XAttribute("name", "size")));
             itemElements.Add(new XElement("enclosure",
                 new XAttribute("url", download),
-                new XAttribute("length", result.Size),
+                new XAttribute("length", result.Size.ToString("00")),
                 new XAttribute("type", "application/x-nzb")));
 
             var tvMatch = s_TvMatcher.Match(result.Title);
