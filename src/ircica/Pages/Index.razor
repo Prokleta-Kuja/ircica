@@ -4,7 +4,7 @@
 
 <PageTitle>Index</PageTitle>
 
-<h6>Current usage @((GC.GetTotalMemory(false) /1024m/1024m).ToString("#,##0.00 MB"))</h6>
+<h6>Current usage @C.GetHumanBytesSize(GC.GetTotalMemory(false))</h6>
 <h6>@IrcService.LastIndexBuild</h6>
 
 <table class="table">
@@ -25,7 +25,7 @@
                 <td>@indexer.Connected</td>
                 <td>@indexer.Collecting</td>
                 <td>@indexer.Lines.Count.ToString("#,##0")</td>
-                <td @onclick=@(()=>OpenLog(indexer))>@indexer.Messages.Count.ToString("#,##0")</td>
+                <td class="pointer" @onclick=@(()=>OpenLog(indexer))>@indexer.Messages.Count.ToString("#,##0")</td>
             </tr>
         }
         <tr>
@@ -38,25 +38,38 @@
     </tbody>
 </table>
 
-<button @onclick=StateHasChanged>Refresh</button>
-<button @onclick=IrcService.DisconnectAll>Disconnect</button>
-<button @onclick=IrcService.ConnectAll>Connect</button>
-<button @onclick=IrcService.StopCollecting>Stop collecting</button>
-<button @onclick=IrcService.StartCollecting>Start collecting</button>
-<button @onclick=IrcService.BuildIndex>Build index</button>
+<div class="btn-group">
+    <button class="btn btn-success" @onclick=IrcService.ConnectAll title=Connect>
+        <i class="bi bi-play-fill"></i>
+    </button>
+    <button class="btn btn-danger" @onclick=IrcService.DisconnectAll title=Disconnect>
+        <i class="bi bi-stop-fill"></i>
+    </button>
+</div>
+@* <button class="btn btn-primary me-2" @onclick=IrcService.StopCollecting>Stop collecting</button>
+    <button class="btn btn-primary me-2" @onclick=IrcService.StartCollecting>Start collecting</button> *@
+<button class="btn btn-primary" @onclick=IrcService.BuildIndex title="Build index">
+    <i class="bi bi-list"></i>
+</button>
 
 <Modal @ref=_logModal Title=Logs Scrollable Width=Modal.Size.Large>
-    <ul class="list-group list-group-flush">
-        @foreach (var item in _log)
-        {
-            <li class="list-group-item">@item</li>
-        }
-    </ul>
+    <ChildContent>
+        <ul class="list-group list-group-flush">
+            @foreach (var item in _log)
+            {
+                <li class="list-group-item">@item</li>
+            }
+        </ul>
+    </ChildContent>
+    <Footer>
+        <button type="button" class="btn btn-danger">Clear</button>
+    </Footer>
 </Modal>
 
 @code {
     Modal _logModal = null!;
     List<string> _log = new(0);
+    IrcConnection? _connection;
     readonly PeriodicTimer _periodicTimer = new(TimeSpan.FromSeconds(2));
     protected override void OnInitialized()
     {
@@ -70,7 +83,15 @@
     }
     async Task OpenLog(IrcConnection connection)
     {
+        _connection = connection;
         _log = connection.Messages.Select(m => $"{m.Sender}: {m.Message}").ToList();
+        await _logModal.ToggleOpenAsync();
+    }
+
+    async Task ClearLog()
+    {
+        _log.Clear();
+        _connection?.Messages.Clear();
         await _logModal.ToggleOpenAsync();
     }
 

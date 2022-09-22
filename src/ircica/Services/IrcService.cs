@@ -98,6 +98,16 @@ public static class IrcService
                 download.Stop();
             }
     }
+    public static async void LastActiveReconnect(DateTime restartAfter)
+    {
+        var shouldReconnect = Connections.All(c => c.LastActivity < restartAfter);
+        if (!shouldReconnect)
+            return;
+
+        DisconnectAll();
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        ConnectAll();
+    }
     public static void BuildIndex()
     {
         var wasCollecting = Collecting;
@@ -217,10 +227,10 @@ public static class IrcService
                     var release = remainder[(startIdx + 1)..];
 
                     var pack = -1;
-                    var size = -1d;
+                    var size = -1m;
                     if (int.TryParse(packStr.TrimStart('#'), out var parsedPack))
                         pack = parsedPack;
-                    if (double.TryParse(sizeStr[..^1], out var parsedSize))
+                    if (decimal.TryParse(sizeStr[..^1], out var parsedSize))
                     {
                         size = sizeStr.Last() switch
                         {

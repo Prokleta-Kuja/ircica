@@ -17,8 +17,16 @@
         {
             <tr>
                 <td>@download.Bot</td>
-                <td @onclick=@(()=>OpenLog(download))>@download.Status</td>
-                <td>@download.Progress %</td>
+                <td class="pointer" @onclick=@(()=>OpenLog(download))>@download.Status</td>
+                <td>
+                    @if (download.Status == IrcDownloadStatus.Downloading)
+                    {
+                        var progress = $"{download.Progress}%";
+                        <div class="progress">
+                            <div class="progress-bar" style="width: @progress;">@progress</div>
+                        </div>
+                    }
+                </td>
                 <td>@download.Message?.FileName</td>
                 <td>@if (download.Message != null)
                     {
@@ -27,10 +35,10 @@
                 </td>
                 <td>@if (download.Status == IrcDownloadStatus.Downloading)
                     {
-                        <button @onclick=@(()=>download.Stop())>Stop</button>
+                        <button class="btn btn-primary" @onclick=@(()=>download.Stop())>Stop</button>
                     }
                 </td>
-                <td><button @onclick=@(()=>RemoveDownload(download))>Remove</button></td>
+                <td><button class="btn btn-danger" @onclick=@(()=>RemoveDownload(download))>Remove</button></td>
             </tr>
         }
     </tbody>

@@ -86,8 +86,10 @@ public class IrcDownload
     async Task PostProcessAsync(string downloadedFile)
     {
         Status = IrcDownloadStatus.PostProcessing;
-        var psi = new ProcessStartInfo("tar", "xvf folder.tar -C test");
-        psi.WorkingDirectory = C.Paths.Incomplete;
+        var psi = new ProcessStartInfo("tar", "xvf folder.tar -C test")
+        {
+            WorkingDirectory = C.Paths.Incomplete
+        };
         psi.RedirectStandardError = psi.RedirectStandardOutput = true;
         psi.UseShellExecute = false;
 

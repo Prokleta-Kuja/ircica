@@ -16,6 +16,7 @@ public class IrcConnection
     public List<IrcDirectMessage> Messages { get; } = new();
     public Dictionary<string, (DateTime First, DateTime Last)> Lines { get; } = new();
     public Queue<IrcDownloadRequest> DownloadRequests { get; set; } = new();
+    public DateTime LastActivity { get; set; } = DateTime.UtcNow;
     public async Task Start(CancellationToken ct)
     {
         using var client = new TcpClient();
@@ -34,6 +35,8 @@ public class IrcConnection
             {
                 if (ShouldQuit(writer, ct))
                     return;
+
+                LastActivity = DateTime.UtcNow;
 
                 if (Connected && ActiveDownloads.Count < MAX_DOWNLOADS && DownloadRequests.TryDequeue(out var request))
                 {

@@ -11,7 +11,7 @@ public static class C
     public static readonly TimeZoneInfo DefaultTZ = TimeZoneInfo.FindSystemTimeZoneById("Europe/Zagreb");
     public static readonly CultureInfo DefaultLocale = CultureInfo.GetCultureInfo("en-US");
     static readonly string[] s_sizes = { "B", "KB", "MB", "GB", "TB" };
-    public static string GetHumanBytesSize(double bytes)
+    public static string GetHumanBytesSize(decimal bytes)
     {
         int order = 0;
         while (bytes >= 1024 && order < s_sizes.Length - 1)
@@ -77,6 +77,7 @@ public class Settings
     public int BuildIndexEveryHours { get; set; } = 3;
     public int ExpireDownloadsOlderThanMinutes { get; set; } = 15;
     public int RemoveAnnouncmentsNotSeenHours { get; set; } = 6;
+    public int RestartAfterInactivityMinutes { get; set; } = 5;
     public List<IrcServer> Servers { get; set; } = new() { new() { Name = "Something", Url = "irc.something.net", Channels = new() { "A", "B" }, Port = 6667 } };
     public bool Validate(out string? message)
     {

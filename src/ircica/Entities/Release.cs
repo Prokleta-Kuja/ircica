@@ -12,7 +12,7 @@ public class Release
     public int ChannelId { get; set; }
     public int BotId { get; set; }
     public int Pack { get; set; }
-    public double Size { get; set; }
+    public decimal Size { get; set; }
     public string Title { get; set; }
     public DateTime FirstSeen { get; set; }
 
