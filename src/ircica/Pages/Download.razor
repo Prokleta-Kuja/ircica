@@ -5,7 +5,6 @@
         <tr>
             <th>Bot</th>
             <th>Status</th>
-            <th>%</th>
             <th>File</th>
             <th>Size</th>
             <th></th>
@@ -17,8 +16,7 @@
         {
             <tr>
                 <td>@download.Bot</td>
-                <td class="pointer" @onclick=@(()=>OpenLog(download))>@download.Status</td>
-                <td>
+                <td class="pointer" @onclick=@(()=>OpenLog(download))>
                     @if (download.Status == IrcDownloadStatus.Downloading)
                     {
                         var progress = $"{download.Progress}%";
@@ -26,11 +24,15 @@
                             <div class="progress-bar" style="width: @progress;">@progress</div>
                         </div>
                     }
+                    else
+                    {
+                        @download.Status
+                    }
                 </td>
                 <td>@download.Message?.FileName</td>
                 <td>@if (download.Message != null)
                     {
-                        <span>@C.GetHumanBytesSize(download.Message.Size);</span>
+                        <span>@C.GetHumanBytesSize(download.Message.Size)</span>
                     }
                 </td>
                 <td>@if (download.Status == IrcDownloadStatus.Downloading)
