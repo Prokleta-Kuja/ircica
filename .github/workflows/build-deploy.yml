@@ -1,0 +1,50 @@
+name: Build & Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1 
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            ghcr.io/prokleta-kuja/ircica:latest
+            ghcr.io/prokleta-kuja/ircica:${{ github.run_number }}
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Prepare SSH
+        env:
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_port: ${{ secrets.SSH_PORT }}
+          remote_user: ${{ secrets.SSH_USER }}
+          remote_key: ${{ secrets.SSH_KEY }}
+          remote_script: ${{ secrets.SSH_SCRIPT }}
+        run: |
+          mkdir ~/.ssh          
+          echo "$remote_key" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          hosts="$(dig +short "$remote_host" | grep -v '\.$' | sed -z 's|\n|,|g')$remote_host"
+          ssh-keyscan -p $remote_port -H "$hosts" > ~/.ssh/known_hosts
+          ssh -p $remote_port -i ~/.ssh/id_rsa $remote_user@$remote_host "$remote_script ${{ github.run_number }}"
+          rm ~/.ssh/id_rsa
