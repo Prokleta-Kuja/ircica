@@ -6,7 +6,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build-ircica",
-            "program": "${workspaceFolder}/src/ircica/bin/Debug/net6.0/ircica.dll",
+            "program": "${workspaceFolder}/src/ircica/bin/Debug/net7.0/ircica.dll",
             "cwd": "${workspaceFolder}/src/ircica",
             "stopAtEntry": false,
             "env": {
@@ -19,7 +19,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build-test",
-            "program": "${workspaceFolder}/src/test/bin/Debug/net6.0/test.dll",
+            "program": "${workspaceFolder}/src/test/bin/Debug/net7.0/test.dll",
             "args": [],
             "cwd": "${workspaceFolder}/src/test",
             "stopAtEntry": false

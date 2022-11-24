@@ -1,0 +1,61 @@
+@using Microsoft.AspNetCore.WebUtilities
+
+<form class="btn-group" @onsubmit:preventDefault @onsubmit=Update>
+    <button type=submit class="d-none"></button>
+    <div class="input-group">
+        <input class="form-control" placeholder=@PlaceHolder @ref=Input @bind=Value>
+        <button class="btn btn-outline-danger" title="Clear" type="button" @onclick=Clear>⨉</button>
+    </div>
+</form>
+
+@code {
+    [Inject] private NavigationManager _navManager { get; set; } = null!;
+    public string? Value { get; set; }
+    private ElementReference Input;
+    [Parameter] public string QueryPart { get; set; } = "search";
+    [Parameter] public EventCallback<string?> OnChange { get; set; }
+    [Parameter] public bool AutoFocus { get; set; }
+    [Parameter] public string? PlaceHolder { get; set; }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && AutoFocus)
+            await Input.FocusAsync();
+    }
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrWhiteSpace(QueryPart))
+            throw new ArgumentNullException(QueryPart);
+
+        var uri = new Uri(_navManager.Uri);
+        var qs = QueryHelpers.ParseQuery(uri.Query);
+
+        if (qs.TryGetValue(QueryPart, out var term))
+            Value = term;
+
+        if (string.IsNullOrWhiteSpace(PlaceHolder))
+            PlaceHolder = "Search term";
+    }
+    private async Task Clear()
+    {
+        Value = null;
+        await Update();
+    }
+    private async Task Update()
+    {
+        if (OnChange.HasDelegate)
+        {
+            await OnChange.InvokeAsync(Value);
+        }
+
+        var uri = new Uri(_navManager.Uri);
+        var qs = QueryHelpers.ParseQuery(uri.Query);
+
+        if (string.IsNullOrWhiteSpace(Value))
+            qs.Remove(QueryPart);
+        else
+            qs[QueryPart] = Value;
+
+        _navManager.NavigateTo(QueryHelpers.AddQueryString(uri.LocalPath, qs));
+    }
+}

@@ -1,0 +1,36 @@
+@using QueryParams
+
+<th>
+    <span class="btn-link" role="button" @onclick=SetOrderByAsync>@Display</span>
+    @if (!string.IsNullOrWhiteSpace(Params.OrderBy) &&
+    Params.OrderBy.Equals(Column, StringComparison.InvariantCultureIgnoreCase))
+    {
+        if (Params.OrderDesc)
+        {
+            <i class="ms-1 bi bi-sort-down"></i>
+        }
+        else
+        {
+            <i class="ms-1 bi bi-sort-up"></i>
+        }
+    }
+</th>
+
+@code {
+    [Inject] private NavigationManager _navManager { get; set; } = null!;
+    [Parameter] public string Column { get; set; } = null!;
+    [Parameter] public string Display { get; set; } = null!;
+    [Parameter] public Params Params { get; set; } = null!;
+    [Parameter] public EventCallback OnChange { get; set; }
+
+    async Task NotifyAsync()
+    {
+        if (OnChange.HasDelegate)
+            await OnChange.InvokeAsync();
+    }
+    async Task SetOrderByAsync()
+    {
+        Params.SetOrderBy(Column);
+        await NotifyAsync();
+    }
+}

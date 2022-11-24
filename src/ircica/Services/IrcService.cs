@@ -206,8 +206,9 @@ public static class IrcService
             var channels = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
             var bots = new Dictionary<string, int>(StringComparer.InvariantCultureIgnoreCase);
             var failedLines = new Dictionary<string, string>();
+            var addedLines = new HashSet<string>();
 
-            foreach (var line in connection.Lines)
+            foreach (var line in connection.Lines.OrderByDescending(x => x.Value.Last))
             {
                 if (releasesToAdd.Count == chunkSize)
                     InsertChunk();
@@ -230,6 +231,8 @@ public static class IrcService
                     var size = -1m;
                     if (int.TryParse(packStr.TrimStart('#'), out var parsedPack))
                         pack = parsedPack;
+                    else
+                        continue;
                     if (decimal.TryParse(sizeStr[..^1], out var parsedSize))
                     {
                         size = sizeStr.Last() switch
@@ -239,6 +242,8 @@ public static class IrcService
                             _ => parsedSize * 1024,
                         };
                     }
+                    else
+                        continue;
 
                     if (!channels.TryGetValue(onChannel, out var channelId))
                     {
@@ -249,6 +254,8 @@ public static class IrcService
                         channelId = channel.ChannelId;
                         channels.Add(channel.Name, channel.ChannelId);
                     }
+                    else
+                        continue;
 
                     if (!bots.TryGetValue(sender, out var botId))
                     {
@@ -259,6 +266,14 @@ public static class IrcService
                         botId = bot.BotId;
                         bots.Add(bot.Name, bot.BotId);
                     }
+                    else
+                        continue;
+
+                    var lineId = $"{botId}-{channelId}-{pack}-{server.ServerId}";
+                    if (addedLines.Contains(lineId))
+                        continue;
+                    else
+                        addedLines.Add(lineId);
 
                     var unformatted = s_unformatter.Replace(release, string.Empty);
                     releasesToAdd.Add(new(unformatted)

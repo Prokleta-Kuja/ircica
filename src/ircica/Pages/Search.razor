@@ -1,11 +1,9 @@
+@using QueryParams
 @attribute [Microsoft.AspNetCore.Components.RouteAttribute(C.Routes.Search)]
 
 <PageTitle>Search</PageTitle>
-
-<form @onsubmit=SearchAsync>
-    <input @ref=_searchInput type="search" @bind=_term>
-    <input type="submit" value="Search">
-</form>
+<div class="mt-1"></div>
+<QuerySearch OnChange=SearchAsync AutoFocus />
 @_message
 
 @if (_items.Any())
@@ -13,12 +11,12 @@
     <table class="table">
     <thead>
         <tr>
-            <th>Server</th>
-            <th>Channel</th>
-            <th>Bot</th>
-            <th>Pack</th>
-            <th>Size</th>
-            <th>Release</th>
+            <Orderable Column=@SearchCol.Server Display="Server" Params=_params OnChange=RefreshListAsync />
+            <Orderable Column=@SearchCol.Channel Display="Channel" Params=_params OnChange=RefreshListAsync />
+            <Orderable Column=@SearchCol.Bot Display="Bot" Params=_params OnChange=RefreshListAsync />
+            <Orderable Column=@SearchCol.Pack Display="Pack" Params=_params OnChange=RefreshListAsync />
+            <Orderable Column=@SearchCol.Size Display="Size" Params=_params OnChange=RefreshListAsync />
+            <Orderable Column=@SearchCol.Release Display="Release" Params=_params OnChange=RefreshListAsync />
             <th></th>
         </tr>
     </thead>
@@ -32,7 +30,7 @@
                     <td>@item.Pack</td>
                     <td>@C.GetHumanBytesSize(item.Size)</td>
                     <td>@item.Title</td>
-                    <td><button @onclick=@(()=>Download(item))>Download</button></td>
+                    <td><button class="btn btn-sm btn-primary" @onclick=@(()=>Download(item))>Download</button></td>
                 </tr>
             }
         </tbody>

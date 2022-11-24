@@ -35,9 +35,10 @@ public static class WebApplicationExtensions
             ctx.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
             ctx.Response.Headers.Pragma = "no-cache";
 
-            if (t == "caps")
+            var term = t.ToString();
+            if (term == "caps")
                 return Results.Content(Newznab.CapResult(), "text/xml");
-            if (Newznab.Searches.Contains(t))
+            if (Newznab.Searches.Contains(term))
                 return Results.Content(await Newznab.SearchResultAsync(ctx.Request.Query), "application/rss+xml");
 
             return Results.BadRequest();

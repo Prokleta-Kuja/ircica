@@ -1,4 +1,7 @@
+using System.Linq.Expressions;
 using ircica.Entities;
+using ircica.QueryParams;
+using ircica.Shared;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -7,19 +10,28 @@ namespace ircica.Pages;
 
 public partial class Search
 {
-    ElementReference _searchInput;
-    string _term = "term AND (x265 OR h265)";// string.Empty;
     string _message = string.Empty;
     List<Release> _items = new();
-
+    private readonly Params _params = new(SearchCol.FirstSeen, true);
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-            await _searchInput.FocusAsync();
+            await RefreshListAsync();
+    }
+    async Task SearchAsync(string? term)
+    {
+        if (string.IsNullOrWhiteSpace(term))
+            _params.ClearSearchTerm();
+        else
+            _params.SetSearchTerm(term);
+
+        await RefreshListAsync();
     }
 
-    async Task SearchAsync()
+    async Task RefreshListAsync()
     {
+        if (string.IsNullOrWhiteSpace(_params.SearchTerm))
+            return;
         if (!File.Exists(C.Paths.ActiveDbFile))
         {
             _message = "No index";
@@ -34,24 +46,62 @@ public partial class Search
 
         try
         {
-            _items = await db.Releases
+            var query = db.Releases
                 .FromSqlInterpolated($@"
                 SELECT 
                     r.*
                 FROM FTSReleases ft
                     INNER JOIN Releases r ON r.ReleaseId = ft.ReleaseId
-                WHERE ft.Title MATCH({_term})")
+                WHERE ft.Title MATCH({_params.SearchTerm})")
                 .Include(r => r.Channel)
                 .Include(r => r.Server)
                 .Include(r => r.Bot)
-                .Take(128)
+                .AsQueryable();
+
+            switch (_params.OrderBy)
+            {
+                case SearchCol.Server:
+                    Expression<Func<Release, string>> server = t => t.Server!.Name;
+                    query = _params.OrderDesc ? query.OrderByDescending(server) : query.OrderBy(server);
+                    break;
+                case SearchCol.Channel:
+                    Expression<Func<Release, string>> channel = t => t.Channel!.Name;
+                    query = _params.OrderDesc ? query.OrderByDescending(channel) : query.OrderBy(channel);
+                    break;
+                case SearchCol.Bot:
+                    Expression<Func<Release, string>> bot = t => t.Bot!.Name;
+                    query = _params.OrderDesc ? query.OrderByDescending(bot) : query.OrderBy(bot);
+                    break;
+                case SearchCol.Pack:
+                    Expression<Func<Release, int>> pack = t => t.Pack;
+                    query = _params.OrderDesc ? query.OrderByDescending(pack) : query.OrderBy(pack);
+                    break;
+                case SearchCol.Size:
+                    Expression<Func<Release, decimal>> size = t => t.Size;
+                    query = _params.OrderDesc ? query.OrderByDescending(size) : query.OrderBy(size);
+                    break;
+                case SearchCol.Release:
+                    Expression<Func<Release, string>> release = t => t.Title;
+                    query = _params.OrderDesc ? query.OrderByDescending(release) : query.OrderBy(release);
+                    break;
+                case SearchCol.FirstSeen:
+                    Expression<Func<Release, DateTime>> firstSeen = t => t.FirstSeen;
+                    query = _params.OrderDesc ? query.OrderByDescending(firstSeen) : query.OrderBy(firstSeen);
+                    break;
+                default: break;
+            }
+
+            _items = await query
+                .Take(256)
                 .AsNoTracking()
                 .ToListAsync();
+
+            StateHasChanged();
         }
-        catch (SqliteException)
+        catch (SqliteException se)
         {
             _items.Clear();
-            _message = "Syntax error";
+            _message = $"Syntax error - {se.Message}";
         }
     }
     static void Download(Release release)
