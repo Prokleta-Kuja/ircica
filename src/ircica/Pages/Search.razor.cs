@@ -1,7 +1,6 @@
 using System.Linq.Expressions;
 using ircica.Entities;
 using ircica.QueryParams;
-using ircica.Shared;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -10,13 +9,14 @@ namespace ircica.Pages;
 
 public partial class Search
 {
+    [Inject] private NavigationManager _navManager { get; set; } = null!;
     string _message = string.Empty;
     List<Release> _items = new();
-    private readonly Params _params = new(SearchCol.FirstSeen, true);
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    Params _params = null!;
+    protected override void OnInitialized()
     {
-        if (firstRender)
-            await RefreshListAsync();
+        var uri = new Uri(_navManager.Uri);
+        _params = new(uri.Query, SearchCol.FirstSeen, true);
     }
     async Task SearchAsync(string? term)
     {

@@ -2,7 +2,7 @@ namespace ircica.QueryParams;
 
 public class Params
 {
-    public Params(string orderBy, bool descending = false)
+    public Params(string query, string orderBy, bool descending = false)
     {
         OrderBy = orderBy;
         OrderDesc = descending;

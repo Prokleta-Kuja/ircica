@@ -1,3 +1,4 @@
+@using Microsoft.AspNetCore.WebUtilities
 @using QueryParams
 
 <th>
@@ -22,11 +23,24 @@
     [Parameter] public string Display { get; set; } = null!;
     [Parameter] public Params Params { get; set; } = null!;
     [Parameter] public EventCallback OnChange { get; set; }
+    const string ORDER_BY = "order-by";
+    const string ORDER_DIR = "descending";
 
     async Task NotifyAsync()
     {
         if (OnChange.HasDelegate)
             await OnChange.InvokeAsync();
+
+        var uri = new Uri(_navManager.Uri);
+        var qs = QueryHelpers.ParseQuery(uri.Query);
+
+        qs[ORDER_BY] = Column;
+        if (Params.OrderDesc)
+            qs[ORDER_DIR] = "y";
+        else
+            qs.Remove(ORDER_DIR);
+
+        _navManager.NavigateTo(QueryHelpers.AddQueryString(uri.LocalPath, qs));
     }
     async Task SetOrderByAsync()
     {
