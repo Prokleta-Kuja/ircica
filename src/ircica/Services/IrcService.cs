@@ -242,8 +242,6 @@ public static class IrcService
                             _ => parsedSize * 1024,
                         };
                     }
-                    else
-                        continue;
 
                     if (!channels.TryGetValue(onChannel, out var channelId))
                     {
@@ -254,8 +252,6 @@ public static class IrcService
                         channelId = channel.ChannelId;
                         channels.Add(channel.Name, channel.ChannelId);
                     }
-                    else
-                        continue;
 
                     if (!bots.TryGetValue(sender, out var botId))
                     {
@@ -266,8 +262,6 @@ public static class IrcService
                         botId = bot.BotId;
                         bots.Add(bot.Name, bot.BotId);
                     }
-                    else
-                        continue;
 
                     var lineId = $"{botId}-{channelId}-{pack}-{server.ServerId}";
                     if (addedLines.Contains(lineId))
