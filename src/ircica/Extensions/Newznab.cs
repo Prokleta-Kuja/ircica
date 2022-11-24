@@ -12,12 +12,12 @@ public static class WebApplicationExtensions
 {
     public static void MapNewznab(this WebApplication app)
     {
-        app.Use(async (ctx, next) =>
-        {
-            var req = ctx.Request;
-            Console.WriteLine($"Url: {req.Path} - {req.QueryString}");
-            await next();
-        });
+        // app.Use(async (ctx, next) =>
+        // {
+        //     var req = ctx.Request;
+        //     Console.WriteLine($"Url: {req.Path} - {req.QueryString}");
+        //     await next();
+        // });
         app.MapGet(C.Routes.NewznabDownload, async (Guid id, HttpContext ctx) =>
         {
             var release = await Newznab.GetByUniqueIdAsync(id);

@@ -96,8 +96,6 @@ public partial class Search
                 .Take(256)
                 .AsNoTracking()
                 .ToListAsync();
-
-            Console.WriteLine($"Items found: {_items.Count}");
         }
         catch (SqliteException se)
         {
