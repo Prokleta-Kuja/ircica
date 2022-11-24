@@ -28,7 +28,9 @@
                     <td>@item.Channel?.Name</td>
                     <td>@item.Bot?.Name</td>
                     <td>@item.Pack</td>
-                    <td>@C.GetHumanBytesSize(item.Size)</td>
+                    <td>
+                        <nobr>@C.GetHumanBytesSize(item.Size)</nobr>
+                    </td>
                     <td>@item.Title</td>
                     <td><button class="btn btn-sm btn-primary" @onclick=@(()=>Download(item))>Download</button></td>
                 </tr>

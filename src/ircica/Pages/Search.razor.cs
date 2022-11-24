@@ -26,6 +26,7 @@ public partial class Search
             _params.SetSearchTerm(term);
 
         await RefreshListAsync();
+        StateHasChanged();
     }
 
     async Task RefreshListAsync()
@@ -96,13 +97,15 @@ public partial class Search
                 .AsNoTracking()
                 .ToListAsync();
 
-            StateHasChanged();
+            Console.WriteLine($"Items found: {_items.Count}");
         }
         catch (SqliteException se)
         {
             _items.Clear();
             _message = $"Syntax error - {se.Message}";
         }
+
+        StateHasChanged();
     }
     static void Download(Release release)
     {
