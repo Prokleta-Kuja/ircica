@@ -48,3 +48,46 @@ jobs:
           ssh-keyscan -p $remote_port -H "$hosts" > ~/.ssh/known_hosts
           ssh -p $remote_port -i ~/.ssh/id_rsa $remote_user@$remote_host "$remote_script ${{ github.run_number }}"
           rm ~/.ssh/id_rsa
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [build, deploy]
+    steps:
+      - name: Success
+        if: ${{ needs.build.result == 'success' && needs.deploy.result == 'success' }}
+        continue-on-error: true
+        env:
+          notify_cred: ${{ secrets.NOTIFY_CRED }}
+          notify_url: ${{ secrets.NOTIFY_URL }}
+          app_url: ${{ secrets.URL }}
+          action_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl \
+            -u $notify_cred \
+            -H "Title: Ircica deployed" \
+            -H "Tags: octopus" \
+            -H "Priority: 3" \
+            -H "Actions: view, GitHub, $action_url, clear=true; \
+                         view, App, $app_url, clear=true" \
+            -H "Content-Type: text/plain" \
+            -d $'${{ github.REPOSITORY }} deployed.' \
+            $notify_url
+      - name: Failure
+        if: ${{ needs.build.result == 'failure' || needs.deploy.result == 'failure' }}
+        continue-on-error: true
+        env:
+          notify_cred: ${{ secrets.NOTIFY_CRED }}
+          notify_url: ${{ secrets.NOTIFY_URL }}
+          app_url: ${{ secrets.URL }}
+          action_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl \
+            -u $notify_cred \
+            -H "Title: Ircica wasn't deployed" \
+            -H "Tags: cursing_face" \
+            -H "Priority: 4" \
+            -H "Actions: view, GitHub, $action_url" \
+            -H "Content-Type: text/plain" \
+            -d $'${{ github.REPOSITORY }} failed.' \
+            $notify_url
