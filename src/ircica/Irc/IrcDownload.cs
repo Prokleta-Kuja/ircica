@@ -127,6 +127,22 @@ public class IrcDownload
         }
         else
             Status = IrcDownloadStatus.Failed;
+
+        await UpdatePermissionsAsync();
+    }
+    async Task UpdatePermissionsAsync()
+    {
+        var psi = new ProcessStartInfo("chmod", $"-R o+r {C.Paths.Complete}")
+        {
+            WorkingDirectory = C.Paths.Incomplete
+        };
+        psi.RedirectStandardError = psi.RedirectStandardOutput = true;
+        psi.UseShellExecute = false;
+        var process = Process.Start(psi);
+        await process!.WaitForExitAsync();
+        if (process.ExitCode != 0)
+            while (!process.StandardError.EndOfStream)
+                Log.Add(process.StandardError.ReadLine() ?? string.Empty);
     }
     public void Stop()
     {
