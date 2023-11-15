@@ -2,24 +2,23 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/dotnet
 {
 	"name": "dev-ircica",
-	"image": "mcr.microsoft.com/devcontainers/dotnet:0-7.0",
-
+	"image": "mcr.microsoft.com/devcontainers/dotnet:0-8.0",
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
-
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	"forwardPorts": [5000],
-
+	"forwardPorts": [
+		5000
+	],
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "dotnet restore",
-
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
-			"extensions": ["ms-dotnettools.csharp"]
+			"extensions": [
+				"ms-dotnettools.csharp"
+			]
 		}
 	}
-
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
 }

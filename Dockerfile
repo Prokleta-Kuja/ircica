@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
 COPY ./src/ircica/*.csproj ./
@@ -9,7 +9,7 @@ COPY ./src/ircica .
 ARG Version=0.0.0
 RUN dotnet publish /p:Version=$Version -c Release -o out --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/out ./
 

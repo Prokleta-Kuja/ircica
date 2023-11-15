@@ -4,7 +4,7 @@ namespace ircica;
 
 public class IrcConnection
 {
-    const int MAX_DOWNLOADS = 2;
+    const int MAX_DOWNLOADS = 5;
     public IrcConnection(IrcServer server)
     {
         Server = server;
